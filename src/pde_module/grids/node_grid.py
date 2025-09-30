@@ -133,7 +133,7 @@ class NodeGrid():
     
     @property
     def meshgrid(self):
-        '''Meshgrid value from coordinate vectors'''
+        '''Create a 3D Meshgrid value from coordinate vectors'''
         
         #We Ignore any axis
         if self._meshgrid is None:
@@ -144,6 +144,7 @@ class NodeGrid():
     
     @property
     def plt_meshgrid(self):
+        '''Return An n-dimesniol meshgrid based on the dimension of the grid. Use for plotting'''
         if hasattr(self,'_plt_meshgrid') is False:
             self._plt_meshgrid = np.meshgrid(*self.coordinate_vectors[0:self.dimension]) 
         return self._plt_meshgrid
@@ -186,8 +187,8 @@ class NodeGrid():
         return wp.array(output,dtype =wp.vec(length = output.shape[-1],dtype = float),shape = output.shape[:-1])
     
     
-    def create_grid_with_ghost(self,num_outputs,arr_type = 'warp'):
-        shape = self.stencil_shape
+    def create_grid_with_ghost(self,num_outputs,batch_size = 1,arr_type = 'warp'):
+        shape = (batch_size,)+self.stencil_shape
         
         if arr_type == 'numpy':     
             return np.zeros(shape= shape + (num_outputs,),dtype = self.float_dtype)
@@ -197,12 +198,18 @@ class NodeGrid():
             raise ValueError()
         
         
-    
-    def trim_ghost_values(self,arr):
+
+    def trim_ghost_values(self,arr,convert_to_numpy = True):
         '''
         Trim ghost cells from array
         '''
-        x = arr
+        
+        if convert_to_numpy:
+            assert isinstance(arr,wp.array)
+            arr = arr.numpy()
+            
+            
+            
         slices = []
         for i,level in enumerate(self.levels):
             if level == 0:

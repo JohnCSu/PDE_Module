@@ -14,9 +14,9 @@ class Laplacian(StencilModule):
         super().__init__(grid,num_inputs,num_inputs,dynamic_array_alloc,**kwargs)
         self.kernel = create_Laplacian_kernel(self.dimension,num_inputs,self.grid.levels)
         
-    def forward(self,current_values,alpha):
+    def forward(self,current_values,scale=1.):
         threads_shape = (current_values.shape[0],) + (self.grid.shape)
-        return laplacian(self.kernel,self.grid.stencil_points,threads_shape,current_values,alpha,self.grid.levels,self.grid.dimension,self.output_array(current_values))
+        return laplacian(self.kernel,self.grid.stencil_points,threads_shape,current_values,scale,self.grid.levels,self.grid.dimension,self.output_array(current_values))
     
 
 

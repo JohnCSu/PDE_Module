@@ -78,16 +78,15 @@ class GridBoundary(StencilModule):
                 
             
             
-        
-    
-    
-    def set_BC(self,face_ids,value,boundary_type,outputs_ids):
+    def set_BC(self,face_ids:str|int|np.ndarray|list|tuple,value:float,boundary_type:int,outputs_ids:int|np.ndarray|list|tuple|None):
         
         
         if isinstance(face_ids,str):
             assert face_ids in self.groups.keys()
             face_ids = self.groups[face_ids]
-        assert isinstance(face_ids,(np.ndarray,list,tuple))
+            
+            
+        assert isinstance(face_ids,(np.ndarray,list,tuple,int))
         
         assert isinstance(outputs_ids,(int,list,tuple,np.ndarray)) or outputs_ids is None
         
@@ -108,17 +107,17 @@ class GridBoundary(StencilModule):
         self.boundary_value[face_ids,outputs_ids] = value
         
     
-    def dirichlet_BC(self,group,value,outputs_ids = None):
+    def dirichlet_BC(self,group:str|int|np.ndarray|list|tuple,value:float,outputs_ids:int|np.ndarray|list|tuple|None = None):
         self.set_BC(group,value,0,outputs_ids)        
     
-    def vonNeumann_BC(self,group,value,outputs_ids = None):
+    def vonNeumann_BC(self,group:str|int|np.ndarray|list|tuple,value:float,outputs_ids:int|np.ndarray|list|tuple|None = None):
         self.set_BC(group,value,1,outputs_ids)
         
-    
+        
     def forward(self,current_values):
         wp.copy(dest = self.output_array(current_values), src =current_values)
         thread_shape = (len(current_values),len(self.boundary_indices),self.num_inputs)
-        return boundary(self.kernel,current_values,thread_shape,self.boundary_indices,self.boundary_type,self.boundary_value,self.interior_indices,self.interior_adjaceny,self.grid.levels,self._output_array)
+        return boundary(self.kernel,self.grid.stencil_points,current_values,thread_shape,self.boundary_indices,self.boundary_type,self.boundary_value,self.interior_indices,self.interior_adjaceny,self.grid.levels,self._output_array)
 
     
     def to_warp(self):
