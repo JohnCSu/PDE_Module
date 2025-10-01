@@ -65,10 +65,11 @@ if __name__ == '__main__':
     u_boundary.dirichlet_BC('ALL',0.)
     u_boundary.dirichlet_BC('+Y',1.,0)
     u_boundary.to_warp()
-    
     u_diffusion = Laplacian(grid,2,dynamic_array_alloc=False)
     u_time_step = ForwardEuler(grid,2,dynamic_array_alloc= False)
     u_div = Divergence(grid)
+    
+    
     
     p_field = grid.create_grid_with_ghost(1)
     p_boundary = GridBoundary(grid,1,dynamic_array_alloc=False)

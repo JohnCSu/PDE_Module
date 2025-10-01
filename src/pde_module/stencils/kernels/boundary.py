@@ -54,6 +54,7 @@ def create_boundary_kernel(num_outputs):
                     inc_vec[j] = adj_vec[j]
                     ghostID = nodeID - inc_vec
                     adjID = nodeID + inc_vec
+                    
                     new_values[batch_id,ghostID[0],ghostID[1],ghostID[2]][output] = 2.*boundary_value[i][output] - current_values[batch_id,adjID[0],adjID[1],adjID[2]][output]
 
         elif boundary_type[i][output] == 1: # Von neumann
