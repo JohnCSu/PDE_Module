@@ -1,7 +1,7 @@
 from ..functional.time_integrators import forward_euler
 from ..kernels.time_integrators import create_forward_euler_kernel
 
-from .stencil_module import StencilModule
+from ...stencil_module import StencilModule
 from pde_module.grids.node_grid import NodeGrid
 
 

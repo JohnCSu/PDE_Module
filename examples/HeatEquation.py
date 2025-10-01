@@ -2,9 +2,9 @@ import numpy as np
 import warp as wp
 
 
-from pde_module.stencils.module.operators import Laplacian,Grad,Divergence
-from pde_module.stencils.module.time_integrators import ForwardEuler
-from pde_module.stencils.module.boundary import GridBoundary
+from pde_module.stencils.FDM.module.operators import Laplacian,Grad,Divergence
+from pde_module.stencils.FDM.module.time_integrators import ForwardEuler
+from pde_module.stencils.FDM.module.boundary import GridBoundary
 
 wp.init()
 wp.config.mode = "debug"

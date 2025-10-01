@@ -1,7 +1,7 @@
 import warp as wp
 from ..kernels.derivatives import create_second_derivative_kernel
 from ..functional.derivatives import second_derivative
-from .stencil_module import StencilModule
+from ...stencil_module import StencilModule
 from pde_module.grids.node_grid import NodeGrid
 
 '''

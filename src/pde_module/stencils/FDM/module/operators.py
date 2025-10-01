@@ -1,7 +1,7 @@
 import warp as wp
 from ..kernels.operators import create_Laplacian_kernel,create_grad_kernel,create_Divergence_kernel
 from ..functional.operators import laplacian,grad,divergence
-from .stencil_module import StencilModule
+from ...stencil_module import StencilModule
 from pde_module.grids.node_grid import NodeGrid
 class Laplacian(StencilModule):
     '''

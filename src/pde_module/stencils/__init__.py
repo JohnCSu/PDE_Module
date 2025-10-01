@@ -1,3 +1,4 @@
-from . import module,kernels,functional
+# from . import module,kernels,functional
+from . import FDM,LBM,FV
 
-from .module.stencil_module import StencilModule
+from .stencil_module import StencilModule
