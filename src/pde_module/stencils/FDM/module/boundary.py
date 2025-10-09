@@ -17,8 +17,9 @@ class GridBoundary(StencilModule):
         self.set_interior_adj_array()
 
         self.kernel = create_boundary_kernel(self.num_inputs)
+        self.is_warp = False 
+        self.zero_output_array = False
         
-
     def get_indices(self):
         assert hasattr(self,"boundary_indices")
         for axis,axis_name in enumerate(['X','Y','Z'][:self.dimension]):
@@ -72,9 +73,6 @@ class GridBoundary(StencilModule):
                 interior_adjacency[mask,i] = inc
                 
         self.interior_adjaceny, self.interior_indices = np.unique(interior_adjacency,axis =0,return_inverse= True)
-
-            
-            
                 
             
             
@@ -114,25 +112,33 @@ class GridBoundary(StencilModule):
         self.set_BC(group,value,1,outputs_ids)
         
         
-    def forward(self,current_values):
-        wp.copy(dest = self.output_array(current_values), src =current_values)
-        thread_shape = (len(current_values),len(self.boundary_indices),self.num_inputs)
-        return boundary(self.kernel,self.grid.stencil_points,current_values,thread_shape,self.boundary_indices,self.boundary_type,self.boundary_value,self.interior_indices,self.interior_adjaceny,self.grid.levels,self._output_array)
+    def forward(self,input_array):
+        wp.copy(dest = self.output_array, src =input_array)
+        thread_shape = (len(input_array),len(self.boundary_indices),self.num_inputs)
+        return boundary(self.kernel,self.grid.stencil_points,input_array,thread_shape,self.boundary_indices,self.boundary_type,self.boundary_value,self.interior_indices,self.interior_adjaceny,self.grid.levels,self.output_array)
 
+    
+    def init_stencil(self,input_array):
+        self.init_stencil_flag = False
+        self.to_warp()
+        self.init_output_array(input_array)
+        
     
     def to_warp(self):
-        check_arr = (self.boundary_type == -1)
-        if np.any(check_arr):
-            raise ValueError(f'boundary ids {np.argwhere(check_arr)} do not have boundary types assigned to them')
-        
-        self.boundary_type = wp.array(self.boundary_type,dtype=wp.vec(length = self.num_inputs,dtype = int))
-        self.boundary_value = wp.array(self.boundary_value,dtype=wp.vec(length = self.num_inputs,dtype = float))
-        self.boundary_indices = wp.array(self.boundary_indices,dtype=int)
+        if self.is_warp is False:
+            self.is_warp = True
+            check_arr = (self.boundary_type == -1)
+            if np.any(check_arr):
+                raise ValueError(f'boundary ids {np.argwhere(check_arr)} do not have boundary types assigned to them')
+            
+            self.boundary_type = wp.array(self.boundary_type,dtype=wp.vec(length = self.num_inputs,dtype = int))
+            self.boundary_value = wp.array(self.boundary_value,dtype=wp.vec(length = self.num_inputs,dtype = float))
+            self.boundary_indices = wp.array(self.boundary_indices,dtype=int)
 
+            
+            self.interior_adjaceny = wp.array(self.interior_adjaceny,dtype= wp.vec3i)
+            self.interior_indices = wp.array(self.interior_indices,dtype= int)
         
-        self.interior_adjaceny = wp.array(self.interior_adjaceny,dtype= wp.vec3i)
-        self.interior_indices = wp.array(self.interior_indices,dtype= int)
-    
         
         
         

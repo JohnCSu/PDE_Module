@@ -24,5 +24,13 @@ def divergence(kernel,stencil_points:wp.array,threads_shape:tuple[int],current_v
     return new_values
     
 
-    
+def outer_product(kernel,
+                  threads_shape,
+                  vec_a:wp.array4d(dtype = wp.vec),
+                  vec_b:wp.array4d(dtype = wp.vec),
+                  scale:float,
+                  new_values:wp.array4d(dtype = wp.mat),):
+    '''Function to calculate the outerproduct of 2 vector fields'''
+    wp.launch(kernel,dim = threads_shape,inputs = [vec_a,vec_b,scale],outputs = [new_values])
+    return new_values
     

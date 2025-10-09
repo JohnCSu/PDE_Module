@@ -11,6 +11,10 @@ class ForwardEuler(StencilModule):
 
         self.kernel = create_forward_euler_kernel(num_inputs)
         
-    def forward(self,current_values,stencil_values,dt):
-        return forward_euler(self.kernel,current_values,self.output_array(current_values),stencil_values,dt)
+    def forward(self,input_array,stencil_values,dt):
+        return forward_euler(self.kernel,input_array,self.output_array,stencil_values,dt)
     
+    
+    def init_stencil(self,input_array,stencil_values,dt):
+        self.init_output_array(input_array)
+        self.init_stencil_flag = False

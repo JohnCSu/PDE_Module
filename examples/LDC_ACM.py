@@ -16,9 +16,9 @@ from pde_module.grids import NodeGrid
 '''
 LID DRIVEN CAVITY
 
-This examples shows solving Stokes flow in the classic LDC example using the Artificial Compressibility Method for explicit CFD. 
+This examples shows solving 2D Navier Stokes in the classic LDC example using the Artificial Compressibility Method for explicit CFD. 
 
-Domain: 1x1
+Domain: 101 x 101 grid nodes
 Re: 100 (All other constant are 1)
 
 For this example no convection term.
@@ -34,7 +34,7 @@ we add some rhie chow correction to suppress checker boarding in the form:
 
 div(u) = div(u*) - laplace(p)
 
-where u* is the divergence of u with no preessure correction
+where u* is the divergence of u at the current time step with no preessure correction
 
 Constants to tune:
 dt - time step 
