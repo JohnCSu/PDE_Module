@@ -24,6 +24,10 @@ def divergence(kernel,stencil_points:wp.array,threads_shape:tuple[int],current_v
     return new_values
     
 
+def row_wise_divergence(kernel,stencil_points:wp.array,threads_shape:tuple[int],current_values,alpha:float,levels:wp.array[int],dimension:int,new_values:wp.array):
+    wp.launch(kernel,dim = threads_shape,inputs = [stencil_points,current_values,alpha,dimension,levels],outputs = [new_values])
+    return new_values
+
 def outer_product(kernel,
                   threads_shape,
                   vec_a:wp.array4d(dtype = wp.vec),

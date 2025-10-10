@@ -1,6 +1,6 @@
 from . import second_order
 from . import first_order
-from .neighbors import get_adjacent_values_along_axis,get_adjacent_points
+from .neighbors import get_adjacent_values_along_axis,get_adjacent_points,get_adjacent_matrix_values_along_axis
 import warp as wp
 
 
@@ -98,6 +98,7 @@ def create_grad_kernel(dimension,levels,num_outputs):
         # wp.printf('Location %d %d %d   %f %f %f \n',x_id,y_id,z_id,current_point[0],current_point[1],current_point[2])
         current_value = current_values[batch_id,x_id,y_id,z_id]
         
+        
     
         for axis in range(wp.static(D)):
             adj_points = get_adjacent_points_along_axis(grid_points,node_ID[axis],axis,levels[axis])
@@ -170,15 +171,16 @@ def create_tensor_divergence_kernel(dimension,levels,mat_shape,div_type):
     
     num_outputs,C = mat_shape
     D = dimension
-    get_adjacent_points_along_axis = get_adjacent_points(levels)
-    get_adjacent_values = get_adjacent_values_along_axis(num_outputs,levels)
     
+    assert C == D
+    get_adjacent_points_along_axis = get_adjacent_points(levels)
+    get_adjacent_values = get_adjacent_matrix_values_along_axis(mat_shape,levels)
     
     
     
     @wp.kernel
     def divergence_kernel(grid_points:wp.array2d(dtype = float),
-                        current_values:wp.array4d(dtype = wp.vec(length=mat_shape,dtype=float)),
+                        current_values:wp.array4d(dtype = wp.mat(shape=mat_shape,dtype=float)),
                         alpha:float,
                         dimension:int,
                         levels:wp.vec3i,
@@ -204,19 +206,24 @@ def create_tensor_divergence_kernel(dimension,levels,mat_shape,div_type):
         current_value = current_values[batch_id,x_id,y_id,z_id]
         
         
-        # Saftey incase we pass in an array that isnt zeroed
         
+        # Saftey incase we pass in an array that isnt zeroed
         for output in range(wp.static(num_outputs)):
-            div_val = 0.
+            div_val = wp.vec(length = num_outputs,dtype = float)
             for axis in range(wp.static(D)):
                 adj_points = get_adjacent_points_along_axis(grid_points,node_ID[axis],axis,levels[axis])
                 # print(adj_points)
-                adj_values = get_adjacent_values(current_values,batch_id,x_id,y_id,z_id,axis)
-                
-                # We only need the dirivative of the varible in the axis direction only
-                div_val += alpha*first_order.central_difference(adj_points[1],current_point[axis],adj_points[0], adj_values[1][axis],current_value[axis],adj_values[0][axis])
+                adj_values = get_adjacent_values(current_values,batch_id,x_id,y_id,z_id,axis,output)
+                # wp.printf('row_1 %d %f %f\n',axis,adj_values[0,0],adj_values[0,1])
+                # wp.printf('row_2 %d %f %f\n',axis,adj_values[1,0],adj_values[1,1])
+                # wp.printf('adj %d %f %f\n',axis,adj_points[0],adj_points[1])
+                div_val += first_order.central_difference(adj_points[1],current_point[axis],adj_points[0], adj_values[1],current_value[:,axis],adj_values[0])
+                # wp.printf('%f %f\n',current_value[0,axis],current_value[1,axis])
+                # wp.printf('%d %f %f\n',axis,div_val[0],div_val[1])
+                # # We only need the dirivative of the varible in the axis direction only
+                # div_val += alpha*first_order.central_difference(adj_points[1],current_point[axis],adj_points[0], adj_values[1][axis],current_value[axis],adj_values[0][axis])
             
-            new_values[batch_id,x_id,y_id,z_id][output] = div_val
+            new_values[batch_id,x_id,y_id,z_id] = div_val
         
     return divergence_kernel
 

@@ -98,7 +98,7 @@ def get_adjacent_matrix_values_along_axis(mat_shape,levels):
             inc_vec[axis] = level
             
             for output in range(num_inputs):
-                mat[i,output] = current_values[batch_id,x_id+inc_vec[0],y_id+inc_vec[1],z_id+inc_vec[2]][row_id,output]
+                mat[i,output] = current_values[batch_id,x_id+inc_vec[0],y_id+inc_vec[1],z_id+inc_vec[2]][output,row_id]
 
         return mat
     

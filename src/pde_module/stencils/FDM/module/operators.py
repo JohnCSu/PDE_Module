@@ -1,6 +1,6 @@
 import warp as wp
-from ..kernels.operators import create_Laplacian_kernel,create_grad_kernel,create_Divergence_kernel,create_outer_product_kernel
-from ..functional.operators import laplacian,grad,divergence,outer_product
+from ..kernels.operators import create_Laplacian_kernel,create_grad_kernel,create_Divergence_kernel,create_outer_product_kernel,create_tensor_divergence_kernel
+from ..functional.operators import laplacian,grad,divergence,outer_product,row_wise_divergence
 from ...stencil_module import StencilModule
 from pde_module.grids.node_grid import NodeGrid
 class Laplacian(StencilModule):
@@ -44,9 +44,18 @@ class OuterProduct(StencilModule):
         self.vector_lengths = (vector_A_Length,vector_B_Length)
         
     def forward(self,vector_field_1,vector_field_2,scale = 1.):
-        threads_shape = (vector_field_1.shape[0],) + self.grid.shape
+        threads_shape = (vector_field_1.shape[0],) + self.grid.stencil_shape
         return outer_product(self.kernel,threads_shape,vector_field_1,vector_field_2,scale,self.output_array)
 
+    def init_stencil(self, vector_field_1,vector_field_2,scale = 1.,*args, **kwargs):
+        self.init_stencil_flag = False
+        assert vector_field_1.dtype._length_ == self.num_inputs
+        assert self.input_type == 'vector'
+        
+        self.init_output_array(vector_field_1)
+        
+        
+    
 class Convection(StencilModule):
     '''
     Solve the following 
@@ -88,7 +97,7 @@ class Divergence(StencilModule):
         super().__init__(grid,num_inputs,1, dynamic_array_alloc, **kwargs)
             
         self.type = type
-        self.kernel = create_Divergence_kernel(grid.dimension,grid.levels,num_inputs)
+        self.kernel = create_Divergence_kernel(grid.dimension,grid.levels,num_inputs,'vector')
         
         
     def forward(self, input_array,scale = 1.):
@@ -98,6 +107,29 @@ class Divergence(StencilModule):
     def init_stencil(self,input_array, *args, **kwargs):
         self.init_stencil_flag = False
         self.init_output_array(input_array)
+
+
+
+class RowWiseDivergence(StencilModule):
+    
+    def __init__(self, grid, input_shape, dynamic_array_alloc = True, float_type=wp.float32):
+        assert len(input_shape) == 2
+        assert input_shape[1] == grid.dimension,'Number of columns specified must be equal to grid dimension'
+        
+        super().__init__(grid, input_shape, input_shape[0], dynamic_array_alloc, float_type)
+
+        self.kernel= create_tensor_divergence_kernel(self.dimension,grid.levels,mat_shape = input_shape,div_type='tensor')
+        
+        
+    def init_stencil(self,input_array, *args, **kwargs):
+        self.init_stencil_flag = False
+        self.init_output_array(input_array)
+
+    def forward(self, input_array,scale = 1.):
+        threads_shape = (input_array.shape[0],) + (self.grid.shape)
+        return row_wise_divergence(self.kernel,self.grid.stencil_points,threads_shape,input_array,scale,self.grid.levels,self.grid.dimension,self.output_array)
+            
+        
         
         
 class Jacobian(StencilModule):

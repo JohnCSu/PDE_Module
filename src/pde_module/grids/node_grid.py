@@ -48,13 +48,15 @@ class Ghost_cells():
             
             if num_ghost_cells > 0:
                     
+                # For LHS i.e. negative values
                 dx_l = np.cumsum(np.diff(axis_arr[:num_ghost_cells+1]))
-                
                 ghost_l = (axis_arr[0]- dx_l)[::-1]
                 
+                
+                # For RHS
                 axis_arr_rev = axis_arr[::-1]
                 dx_r = np.cumsum(np.diff(axis_arr_rev[:num_ghost_cells+1]))
-                ghost_r = (axis_arr[0] - dx_r)
+                ghost_r = (axis_arr_rev[0] - dx_r)
 
                 arr_with_ghost = np.concatenate((ghost_l,axis_arr,ghost_r),dtype=axis_arr.dtype)
                 
@@ -187,13 +189,21 @@ class NodeGrid():
         return wp.array(output,dtype =wp.vec(length = output.shape[-1],dtype = float),shape = output.shape[:-1])
     
     
-    def create_grid_with_ghost(self,num_outputs,batch_size = 1,arr_type = 'warp'):
+    def create_grid_with_ghost(self,num_outputs:int|tuple|list,batch_size = 1,arr_type = 'warp'):
         shape = (batch_size,)+self.stencil_shape
         
-        if arr_type == 'numpy':     
-            return np.zeros(shape= shape + (num_outputs,),dtype = self.float_dtype)
+        
+        if arr_type == 'numpy':
+            output_shape =   (num_outputs,)   if isinstance(num_outputs,int) else num_outputs
+            return np.zeros(shape= shape + output_shape,dtype = self.float_dtype)
         elif arr_type == 'warp':
-            return wp.zeros(shape = shape, dtype = wp.vec(length = num_outputs,dtype = self.wp_float_dtype))
+            if isinstance(num_outputs,int):
+                dtype = wp.vec(length = num_outputs,dtype = self.wp_float_dtype)
+            elif isinstance(num_outputs,(tuple)):
+                assert len(num_outputs) == 2
+                dtype = wp.mat(shape = num_outputs,dtype = self.wp_float_dtype)
+            
+            return wp.zeros(shape = shape, dtype = dtype)
         else:
             raise ValueError()
         

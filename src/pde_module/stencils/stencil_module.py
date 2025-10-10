@@ -20,8 +20,8 @@ class StencilModule():
     If True Always allocate a new array
     '''
     _output_array:wp.array | None = None
-    num_inputs:int | None
-    num_outputs:int | None
+    num_inputs:int |tuple| None
+    num_outputs:int  |tuple| None
     
     init_stencil_flag:bool = True
     
