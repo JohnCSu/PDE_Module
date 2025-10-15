@@ -2,7 +2,7 @@ import numpy as np
 import warp as wp
 
 
-from pde_module.stencils.FDM.module.operators import Laplacian,Grad,Divergence
+from pde_module.stencils.FDM.module.operators import Laplacian,Grad,Divergence,RowWiseDivergence
 from pde_module.stencils.FDM.module.time_integrators import ForwardEuler
 from pde_module.stencils.FDM.module.boundary import GridBoundary
 from pde_module.stencils.FDM.module.map import ElementWiseMap
@@ -69,7 +69,7 @@ if __name__ == '__main__':
     u_diffusion = Laplacian(grid,2,dynamic_array_alloc=False)
     u_time_step = ForwardEuler(grid,2,dynamic_array_alloc= False)
     u_div = Divergence(grid)
-    
+    u_div_row = RowWiseDivergence(grid,(1,2))
     
     p_field = grid.create_grid_with_ghost(1)
     p_boundary = GridBoundary(grid,1,dynamic_array_alloc=False)
@@ -83,17 +83,13 @@ if __name__ == '__main__':
     np.set_printoptions(precision=2)
     u = u_field
     p = p_field
-    # print(input_values.numpy()[0,:,:,0,0])
-    
     
     func = lambda x,y: x+y
     p_sum = ElementWiseMap(func,grid,dynamic_array_alloc=False)
     u_sum = ElementWiseMap(func,grid,dynamic_array_alloc=False)
     
-    
-    for i in range(10000):
+    for i in range(30_000):
         # Apply BC to u and p fields
-        
         u = u_boundary(u)
         p = p_boundary(p)
                 
@@ -102,20 +98,19 @@ if __name__ == '__main__':
         #p_grad
         dp = p_grad(p,scale = -1.)
         div_u = u_div(u,scale = -1.)
-        p_diff = p_diffusion(p,scale = dt)
+        p_F = div_u
+        # p_diff = p_diffusion(p,scale = dt/4.)
         
         u_F = u_sum(dp,u_diff)
-        p_F = p_sum(div_u,p_diff)
+        # p_F = p_sum(div_u,p_diff)
         
         u = u_time_step(u,u_F,dt)
         p = p_time_step(p,p_F,dt*beta**2.)
         
         t += dt
-        
-    print(f't = {t:.3e} max value = {np.max(u.numpy().max()):.3E}, dt = {dt:.3E}')
-    
 
     to_plot = grid.trim_ghost_values(u)
+    print(f't = {t:.3e} max value = {to_plot.max():.3E}, dt = {dt:.3E}')
     
     p_plot = grid.trim_ghost_values(p)
     u_plot = to_plot.squeeze()
@@ -128,17 +123,26 @@ if __name__ == '__main__':
     meshgrid = [m.T for m in meshgrid]
     # print(f'max u {np.max(u):.3E}')
     
-    plt.quiver(*meshgrid[::-1],u.T,v.T)
+    # plt.quiver(*meshgrid[::-1],u.T,v.T)
+    # plt.show()
+    
+    plt.contourf(*meshgrid[::-1],u.T,cmap ='jet',levels = 100)
+    plt.colorbar()
     plt.show()
     
-    plt.contourf(*meshgrid[::-1],u_mag.T,cmap ='jet',levels = 100)
+    plt.contourf(*meshgrid[::-1],v.T,cmap ='jet',levels = 100)
+    plt.colorbar()
     plt.show()
     
-    
+    import pandas as pd
+    v_benchmark = pd.read_csv(r'examples\v_velocity_results.csv',sep = ',')
     #Plot centerline velocities
     
     x_05 = meshgrid[0][:,n//2]
     v_05 = v[:,n//2]
     
+    
+    print(f"CFD max {v_05.max()}, Benchmark Max :{v_benchmark['100'].max()}")
+    plt.plot(v_benchmark['%x'],v_benchmark['100'],'o',label = 'Ghia et al')
     plt.plot(x_05,v_05)
     plt.show()

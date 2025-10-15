@@ -208,22 +208,22 @@ def create_tensor_divergence_kernel(dimension,levels,mat_shape,div_type):
         
         
         # Saftey incase we pass in an array that isnt zeroed
-        for output in range(wp.static(num_outputs)):
-            div_val = wp.vec(length = num_outputs,dtype = float)
-            for axis in range(wp.static(D)):
-                adj_points = get_adjacent_points_along_axis(grid_points,node_ID[axis],axis,levels[axis])
-                # print(adj_points)
-                adj_values = get_adjacent_values(current_values,batch_id,x_id,y_id,z_id,axis,output)
-                # wp.printf('row_1 %d %f %f\n',axis,adj_values[0,0],adj_values[0,1])
-                # wp.printf('row_2 %d %f %f\n',axis,adj_values[1,0],adj_values[1,1])
-                # wp.printf('adj %d %f %f\n',axis,adj_points[0],adj_points[1])
-                div_val += first_order.central_difference(adj_points[1],current_point[axis],adj_points[0], adj_values[1],current_value[:,axis],adj_values[0])
-                # wp.printf('%f %f\n',current_value[0,axis],current_value[1,axis])
-                # wp.printf('%d %f %f\n',axis,div_val[0],div_val[1])
-                # # We only need the dirivative of the varible in the axis direction only
-                # div_val += alpha*first_order.central_difference(adj_points[1],current_point[axis],adj_points[0], adj_values[1][axis],current_value[axis],adj_values[0][axis])
-            
-            new_values[batch_id,x_id,y_id,z_id] = div_val
+        # for output in range(wp.static(num_outputs)):
+        div_val = wp.vec(length = num_outputs,dtype = float)
+        for axis in range(wp.static(D)):
+            adj_points = get_adjacent_points_along_axis(grid_points,node_ID[axis],axis,levels[axis])
+            # print(adj_points)
+            adj_values = get_adjacent_values(current_values,batch_id,x_id,y_id,z_id,axis)
+            # wp.printf('row_1 %d %f %f\n',axis,adj_values[0,0],adj_values[0,1])
+            # wp.printf('row_2 %d %f %f\n',axis,adj_values[1,0],adj_values[1,1])
+            # wp.printf('adj %d %f %f\n',axis,adj_points[0],adj_points[1])
+            div_val += alpha*first_order.central_difference(adj_points[1],current_point[axis],adj_points[0], adj_values[1],current_value[:,axis],adj_values[0])
+            # wp.printf('%f %f\n',current_value[0,axis],current_value[1,axis])
+            # wp.printf('%d %f %f\n',axis,div_val[0],div_val[1])
+            # # We only need the dirivative of the varible in the axis direction only
+            # div_val += alpha*first_order.central_difference(adj_points[1],current_point[axis],adj_points[0], adj_values[1][axis],current_value[axis],adj_values[0][axis])
+        
+        new_values[batch_id,x_id,y_id,z_id] = div_val
         
     return divergence_kernel
 

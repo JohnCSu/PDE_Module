@@ -15,14 +15,17 @@ from pde_module.grids import NodeGrid
 
 
 if __name__ == '__main__':
-    n = 50
+    n = 31
     x,y = np.linspace(0,1,n),np.linspace(0,1,n)
     grid = NodeGrid(x,y)
 
     IC = lambda x,y,z: (np.sin(np.pi*x)*np.sin(np.pi*y))
     
+    
     initial_value =grid.initial_condition(IC)
-    print(initial_value.shape)
+    
+    
+    
     to_plot = grid.trim_ghost_values(initial_value)
 
     t = 0
@@ -47,7 +50,7 @@ if __name__ == '__main__':
     input_values = initial_value
     print(input_values.numpy()[0,:,:,0,0])
     
-    for i in range(1000):
+    for i in range(0):
         boundary_corrected_values = boundary(input_values)
         # print(boundary_corrected_values.numpy()[0,:,:,0,0])        
         laplace = laplcian_stencil(boundary_corrected_values,scale =0.1)
@@ -61,5 +64,39 @@ if __name__ == '__main__':
     print(f't = {t:.3e} max value = {np.max(input_values.numpy().max()):.3E}, dt = {dt:.3E}')
     
 
+    to_plot = grid.trim_ghost_values(input_values)
+    u = to_plot[0,:,:,0]
+    meshgrid = grid.plt_meshgrid
+    meshgrid = [m.T for m in meshgrid]
+    # print(f'max u {np.max(u):.3E}')
+    
+    # plt.quiver(*meshgrid[::-1],u.T,v.T)
+    # plt.show()
+    
+    plt.contourf(*meshgrid[::-1],u.T,cmap ='jet',levels = 100)
+    plt.colorbar()
+    plt.show()
+    
+    
+    
+    u_05 = to_plot[0,n//2,:,0]
+    plt.plot(y,u_05)
+    plt.show()
+    
+    g = Grad(grid,dynamic_array_alloc=False)
+    
+    grad_u = g(input_values)
+    grad_u = grid.trim_ghost_values(grad_u)
+    
+    
+    
+    # At x = 0.5 we want df/dx, so y
+    gx_05 = grad_u[0,:,n//2,0]
+    plt.plot(y,gx_05,label = 'FD')
+    
+    plt.plot(y,np.sin(np.pi*0.5)*np.pi*np.cos(np.pi*y),label = 'analytic')
+    plt.legend()
+    plt.show()
+    
     
     

@@ -79,7 +79,7 @@ def get_adjacent_matrix_values_along_axis(mat_shape,levels):
     max_neighbors  = check_levels(levels)
     num_inputs,num_rows = mat_shape
     @wp.func
-    def get_adjacent_values(current_values:wp.array4d(dtype = wp.mat(shape=mat_shape,dtype=float)),batch_id:int,x_id:int,y_id:int,z_id:int,axis:int,row_id:int):
+    def get_adjacent_values(current_values:wp.array4d(dtype = wp.mat(shape=mat_shape,dtype=float)),batch_id:int,x_id:int,y_id:int,z_id:int,axis:int):
         '''
         I have a matrix at each point, i need to get the ith row and store it
         
@@ -98,7 +98,7 @@ def get_adjacent_matrix_values_along_axis(mat_shape,levels):
             inc_vec[axis] = level
             
             for output in range(num_inputs):
-                mat[i,output] = current_values[batch_id,x_id+inc_vec[0],y_id+inc_vec[1],z_id+inc_vec[2]][output,row_id]
+                mat[i,output] = current_values[batch_id,x_id+inc_vec[0],y_id+inc_vec[1],z_id+inc_vec[2]][output,axis]
 
         return mat
     
