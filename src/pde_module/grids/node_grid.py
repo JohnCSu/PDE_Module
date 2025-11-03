@@ -3,7 +3,7 @@ import warp as wp
 from typing import Callable,Any
 import matplotlib.pyplot as plt
 from collections import deque
-
+from .grid import Grid
 
 VALID_ARRAY_TYPES = {
     'numpy',
@@ -182,8 +182,6 @@ class NodeGrid():
         
         else:
             raise NotImplementedError(f'function should only output either scalar or 1D array output got {self.shape[3:]} instead')
-        
-        
         
         
         return wp.array(output,dtype =wp.vec(length = output.shape[-1],dtype = float),shape = output.shape[:-1])

@@ -54,7 +54,6 @@ class GridBoundary(StencilModule):
         
         self.boundary_indices = np.unique(np.concatenate(boundaries,dtype= int),axis = 0).astype(np.int32)
         
-        
         self.boundary_type = -1*np.ones(shape = (len(self.boundary_indices),self.num_inputs),dtype=np.int32)
         self.boundary_value = np.zeros_like(self.boundary_type).astype(np.float32)
 

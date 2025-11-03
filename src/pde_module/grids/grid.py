@@ -2,96 +2,269 @@ import warp as wp
 import numpy as np
 from math import prod
 
-
-
-class Cells():
-    volume:np.ndarray | wp.array
-    shape:tuple[int]
+class Grid:
+    '''
+    Class to create a Uniform Grid of spacing dx. nodal and cell fields can be created from this class
+    '''
     dimension:int
-    
-
-class Strucutred3D(Cells):
-    '''
-    Stores info for structured non-uniform cells 
-    '''
-    def __init__(self,x,y,z,dimension):
-        assert dimension == 3
-        self.dimension = dimension
-        
-        self.cell_center_x = self.get_midpoints(x)
-        self.cell_center_y = self.get_midpoints(y)
-        self.cell_center_z = self.get_midpoints(z)
-        self.volume = self.get_cell_volume()
-        self.cell_center_coordinate_vectors = [self.cell_center_x,self.cell_center_y,self.cell_center_z]
-        self.shape = tuple(len(coord) for coord in self.cell_center_coordinate_vectors)
-        
-    @staticmethod
-    def get_midpoints(arr):
-        if len(arr) == 1:
-            return arr
-        return (arr[:-1] + arr[1:])/2.
-
-    
-    def get_cell_volume(self):
-        
-        diffs = []
-        for i,coord_array in enumerate(self.cell_center_coordinate_vectors[:self.dimension]):
-            
-            shape = [1 for _ in range(self.dimension)]
-            shape[i] = -1
-            
-            diffs.append(np.diff(coord_array).reshape(shape))
-        
-        return prod(diffs)
-
-
-
-
-
-class StructuredFaces(Cells):
-    def __init__(self,x,y,z,dimension):
-        assert dimension == 3 # For now
-        self.face_center_x = x
-        self.face_center_y = y
-        self.face_center_z = z
+    wp_float_type:wp.float32 | wp.float64
+    np_float_type:np.float32 | np.float64
+    has_ghost_cells:bool = False
     
     
-    def get_cell_
-    
-    
-class CellGrid:
-    '''
-    Define the nodes along each axis. Must be 3D
-    '''
-    def __init__(self,x,y=None,z=None,float_dtype = np.float32):
+    def __init__(self,dx,nx,ny=None,nz=None,origin = None,levels = None,warp_float_dtype = wp.float32):
         
-        assert isinstance(x,np.ndarray)
-        self.wp_float_dtype = wp.dtype_from_numpy(float_dtype)
-        
-        arrs = []
-        for axis in [x,y,z]:
-            if axis is None:
-                arr = np.array([0],dtype=float_dtype)
+        self.dx = dx
+        self.nodal_shape = []
+        self.cell_shape = []
+        self.dimension = 0
+        for n in [nx,ny,nz]:
+            if isinstance(n,int):
+                assert n > 1, 'number of nodes along a direction must be greater than 1. Use None for n = 1'
+                self.nodal_shape.append(n)
+                self.cell_shape.append(n-1)
+                self.dimension += 1
+            elif n is None:
+                self.nodal_shape.append(1)
+                self.cell_shape.append(1)
             else:
-                arr = axis
-                assert len(arr.shape) == 1 and len(arr) >=3, 'There must be at least 3 points along a specified axis'
+                raise ValueError()
+        
+        if origin is None:
+            self.origin = (0.,)*3
+        else:
+            assert isinstance(origin,tuple|list)
             
-            arrs.append(arr) 
+            self.origin = origin
+        
+            if len(origin) == self.dimension:
+                for _ in range(self.dimension,3):
+                    self.origin += (0.,)
+        
+        self.cell_volume = dx**self.dimension
+        # self.axis_ranges = [(o,dx*n) for o,n in zip(self.origin,self.shape)]
+        # self.cell_centroids = tuple( [np.linspace(o+dx/2.,l[-1] - dx/2.,n) for o,l,n in zip(self.origin,self.axis_ranges,self.shape)])
+        self.node_coordinate_arrays = tuple(np.linspace(o,o+self.dx*(n-1),n) for o,n in zip(self.origin,self.nodal_shape))
+        self.cell_centroids = tuple( [np.linspace(o+dx/2.,l[-1]-dx/2.,n) for o,l,n in zip(self.origin,self.node_coordinate_arrays,self.cell_shape)])
+        
+        self.wp_float_type = warp_float_dtype
+        self.np_float_type = wp.dtype_to_numpy(self.wp_float_type)
+        
+        self.levels = wp.vec3i(self.add_ghost_cells(levels))
+        self.ghost_cell_shape = tuple(axis+2*level for axis,level in zip(self.cell_shape,self.levels))
+        self.ghost_nodal_shape = tuple(axis+2*level for axis,level in zip(self.nodal_shape,self.levels))
+
+        
+    def add_ghost_cells(self,levels):
+        if levels is None:
+            return (0,0,0)
+            
+        elif isinstance(levels,int):
+            levels = (levels,)*self.dimension
+            
+        elif isinstance(levels,(tuple,list)):
+            assert all(isinstance(x,int) for x in levels)
+            assert len(levels) == self.dimension
+            levels = levels
+        else:
+            raise ValueError()
+        
+        for _ in range(self.dimension,3):
+            levels = levels + (0,)   
+        self.has_ghost_cells = True
+        return levels
+        
+        
+    def create_grid_point_field(self,field_type,batch_size = None,output_type = 'warp'):
+        if field_type == 'cell':
+            coordinate_vectors = self.cell_centroids
+        elif field_type == 'node':
+            coordinate_vectors = self.node_coordinate_arrays
+        else:
+            raise ValueError(f'Valid options are strings "cell" or "node" got {field_type} instead')
+        
+        
+        coordinate_vectors = self._create_ghost_coordinate_arrays(*coordinate_vectors,levels=self.levels)
+        
+        grid_point_field = np.meshgrid(*coordinate_vectors,indexing='ij')
+        
+        if batch_size is None:
+            grid_point_field =  np.stack(grid_point_field,axis = -1)
+        else:
+            assert isinstance(batch_size,int)
+            
+            grid_point_field = np.stack(grid_point_field,axis = -1)
+            grid_point_field = grid_point_field[np.newaxis,:,:,:,:]
+            
+            grid_point_field =  np.repeat(grid_point_field,repeats= batch_size,axis = 0)
+
+        
+        if output_type == 'warp':
+            return wp.array(grid_point_field,dtype=wp.vec3)
+        elif output_type == 'numpy':
+            return grid_point_field
+        else:
+            raise ValueError(f'output_type must be string warp or numpy got {output_type} instead')
+        
+    
+    
+    def _ghost_meshgrid(self,field_type):
+        if field_type == 'cell':
+            coordinate_vectors = self.cell_centroids
+        elif field_type == 'node':
+            coordinate_vectors = self.node_coordinate_arrays
+        else:
+            raise ValueError(f'Valid options are strings "cell" or "node" got {field_type} instead')
+        
+        
+        coordinate_vectors = self._create_ghost_coordinate_arrays(*coordinate_vectors,levels=self.levels)
+        
+        return np.meshgrid(*coordinate_vectors,indexing='ij')
+    
+    def initial_condition(self,field_type,func,**kwargs):
+        
+        meshgrid = self._ghost_meshgrid(field_type)
+        output = func(*meshgrid,**kwargs) # Outputs would be N,M,O
+        
+        
+        if field_type == 'cell':
+            shape_with_ghost = self.ghost_cell_shape
+        elif field_type == 'node':
+            shape_with_ghost = self.ghost_nodal_shape
+        else:
+            raise ValueError(f'Valid options are strings "cell" or "node" got {field_type} instead')
+          
+          
+        if output.shape == shape_with_ghost: # We have scalar output
+            output = np.expand_dims(output,axis = (0,-1)) # We add a batch + vector output shape
+        elif len(output.shape) == len(shape_with_ghost) + 1: # WE have a vector output
+            output = np.expand_dims(output,axis = (0,)) # We add a batch dim only
+        
+        else:
+            raise NotImplementedError(f'function should only output either scalar or vector output across the grid shape')
+        
+        
+        return wp.array(output,dtype =wp.vec(length = output.shape[-1],dtype = float),shape = output.shape[:-1])
+        
+    def create_field(self,field_type,output_shape:int|tuple|list,batch_size:int,flatten:bool):
+        
+        if field_type == 'cell':
+            arr_shape = (batch_size,) + self.ghost_cell_shape
+        elif field_type == 'node':
+            arr_shape = (batch_size,) + self.ghost_nodal_shape
+        else:
+            raise ValueError()
+        
+        if isinstance(output_shape,int):
+                output_shape = (output_shape,)
+        
+        assert isinstance(output_shape,(tuple,list))
+        
+        if len(output_shape) == 1:
+            dtype = wp.vec(length = output_shape,dtype = self.wp_float_type)
+        elif len(output_shape) == 2:
+            dtype = wp.mat(shape = output_shape,dtype = self.wp_float_type)
+        else:
+            raise ValueError('output shape must be int or tuple or list of size 1 or 2')
+            
+            
+        arr = wp.zeros(shape = arr_shape, dtype = dtype)
+        
+        
+        return arr.reshape((-1,prod(arr_shape[1:]))) if flatten else arr
+    
+
+    def create_nodal_field(self,output_shape:int|tuple|list,batch_size:int = 1,flatten:bool = False):
+        '''
+        Create a field based on the nodal shape of the grid plus any ghost cells
+        
+        output_shape: int|tuple|list, int is equivalent to a tuple of len 1. If tuple len == 1, then a vector field is created, if tuple len == 2 then a matrix field is created
+        batch_size: int number of different fields to generate
+        flatten:  bool if true then flattens to make a (B,N) where B is the batchsize and N is the product of the field shape 
+        '''
+        return self.create_field('node',output_shape,batch_size,flatten)
+    
+    def create_cell_field(self,output_shape:int|tuple|list,batch_size:int = 1,flatten:bool = False):
+        '''
+        Create a field based on the cell shape of the grid plus any ghost cells
+        
+        output_shape: int|tuple|list, int is equivalent to a tuple of len 1. If tuple len == 1, then a vector field is created, if tuple len == 2 then a matrix field is created
+        batch_size: int number of different fields to generate
+        flatten:  bool if true then flattens to make a (B,N) where B is the batchsize and N is the product of the field shape 
+        '''
+        return self.create_field('cell',output_shape,batch_size,flatten)
+    
+    
+    def create_faces_field(self,output_shape:int|tuple|list,batch_size:int,flatten:bool):
+        pass
+    
+    def calculate_boundary_Nodes(self):
+        boundaries = []
+        for i,axis_name in enumerate(['X','Y','Z'][:self.dimension] ):
+            coords = self.nodal_shape[i]
+            axis_lim = [0,coords-1]
+            for fixed_point in axis_lim:
                 
+                shape = list(self.grid.shape)
+                shape[i] = 1
+                
+                indices = np.indices(shape,dtype = int)
+                indices = np.moveaxis(indices,0,-1).reshape(-1,3)
+                indices[:,i] += fixed_point
+                
+                boundaries.append(indices)
+                
+        self.boundary_indices = np.unique(np.concatenate(boundaries,dtype= int),axis = 0).astype(np.int32)
+    
+    def calculate_boundary_Faces(self):
+        pass
+    
+    def calculate_internal_Faces(self):
+        pass
+    
+
+    @staticmethod
+    def _create_ghost_coordinate_arrays(x:np.ndarray,y:np.ndarray,z:np.ndarray,levels:tuple):
         
-        self.dimension = sum([1 for i in arrs if len(i) > 1])
+        ghost_list = []
+        for num_ghost_cells,axis_arr in zip(levels,[x,y,z]):
+            
+            if num_ghost_cells > 0:
+                    
+                # For LHS i.e. negative values
+                dx_l = np.cumsum(np.diff(axis_arr[:num_ghost_cells+1]))
+                ghost_l = (axis_arr[0]- dx_l)[::-1]
+                
+                
+                # For RHS
+                axis_arr_rev = axis_arr[::-1]
+                dx_r = np.cumsum(np.diff(axis_arr_rev[:num_ghost_cells+1]))
+                ghost_r = (axis_arr_rev[0] - dx_r)
+
+                arr_with_ghost = np.concatenate((ghost_l,axis_arr,ghost_r),dtype=axis_arr.dtype)
+                
+            else:
+                arr_with_ghost = axis_arr
+                    
+            ghost_list.append(arr_with_ghost)
         
-        self.float_dtype = float_dtype
+        return ghost_list
+
+
+
+class Faces():
+    dimension:int
+    grid:Grid
+    normals: wp.array
+    area:float
+    owners:wp.array
+    
+    def __init__(self,grid):
+        self.dimension = grid.dimension
+        self.grid = grid
         
-        
-        self.coordinate_vectors = arrs     
-        '''tuple of coordinate vectors along each axis that define the grid excluding ghost cells'''
-        
-        self.x,self.y,self.z = self.coordinate_vectors
-        self.shape = tuple(len(arr) for arr in self.coordinate_vectors)
-        '''Shape of grid excluding any ghost points'''
-        
-        '''We only use neighbors'''
-        self.levels = 1
-        
-        
+    def calculate_boundary_Faces(self):
+        pass
+    
+    def create_faces_field(self):
+        pass 

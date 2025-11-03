@@ -1,9 +1,14 @@
 from pde_module.grids import NodeGrid
+from pde_module.grids import UniformCellGrid
+
+from pde_module.grids.grid import Grid
 from collections import deque
 import warp as wp
 import warnings
 import numpy as np
 import inspect
+
+
 
 class StencilModule():
     '''
@@ -12,7 +17,7 @@ class StencilModule():
     buffer:deque
     levels: int | tuple
     dimension:int
-    grid:NodeGrid
+    grid:Grid
     
     requires_grad:bool = False
     dynamic_array_alloc:bool = True
@@ -31,7 +36,8 @@ class StencilModule():
     
     zero_output_array: bool = True
 
-    def __init__(self,grid:NodeGrid,num_inputs:int,num_outputs:int,dynamic_array_alloc:bool = True,float_type = wp.float32):
+
+    def __init__(self,grid:Grid,num_inputs:int,num_outputs:int,dynamic_array_alloc:bool = True,float_type = wp.float32):
         self.num_inputs = num_inputs
         self.num_outputs = num_outputs
         self.dimension = grid.dimension

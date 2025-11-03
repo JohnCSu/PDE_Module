@@ -16,6 +16,7 @@ def create_Laplacian_kernel(dimension,num_inputs,levels):
     @wp.kernel
     def laplacian_kernel(grid_points:wp.array2d(dtype = float),
                         current_values:wp.array4d(dtype = wp.vec(length=num_inputs,dtype=float)),
+                        dx:float,
                         alpha:float,
                         dimension:int,
                         levels:wp.vec3i,
