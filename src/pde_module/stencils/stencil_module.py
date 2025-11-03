@@ -1,6 +1,3 @@
-from pde_module.grids import NodeGrid
-from pde_module.grids import UniformCellGrid
-
 from pde_module.grids.grid import Grid
 from collections import deque
 import warp as wp

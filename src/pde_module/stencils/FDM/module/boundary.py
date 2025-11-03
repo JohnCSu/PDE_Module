@@ -4,28 +4,35 @@ import warp as wp
 from pde_module.stencils import StencilModule 
 from ..kernels.boundary import create_boundary_kernel
 from ..functional.boundary import boundary
-
+from pde_module.grids import Grid
 
 class GridBoundary(StencilModule):
     '''Module to define BC at the boundary of grid. Current implementation are time constant BC For immersed boundaries see ... instead'''
-    def __init__(self, grid, num_inputs,*,dynamic_array_alloc = True, **kwargs):
+    def __init__(self, grid:Grid, num_inputs,*,dynamic_array_alloc = True, **kwargs):
         super().__init__(grid, num_inputs,num_inputs, dynamic_array_alloc, **kwargs)
         
         self.groups = dict()
-        self.get_boundary_indcies()
-        self.get_indices()
-        self.set_interior_adj_array()
-
+        
+        
         self.kernel = create_boundary_kernel(self.num_inputs)
         self.is_warp = False 
         self.zero_output_array = False
+
         
-    def get_indices(self):
-        assert hasattr(self,"boundary_indices")
+        self.boundary_indices = grid.boundary_node_indices    
+        self.boundary_type = -1*np.ones(shape = (len(self.boundary_indices),self.num_inputs),dtype=np.int32)
+        self.boundary_value = np.zeros_like(self.boundary_type).astype(np.float32)
+
+        self.set_groups()
+        self.set_interior_adj_array()
+    
+    
+    def set_groups(self):
+        # assert hasattr(self,"boundary_indices")
         for axis,axis_name in enumerate(['X','Y','Z'][:self.dimension]):
             
-            coords = self.grid.coordinate_vectors[axis]
-            axis_lim = [0,len(coords)-1]
+            coords = self.grid.nodal_shape[axis]
+            axis_lim = [0,coords-1]
             
             for axis_side,side in zip(axis_lim,['-','+']):
                 name = side + axis_name
@@ -34,30 +41,6 @@ class GridBoundary(StencilModule):
         self.groups['ALL'] = np.arange(len(self.boundary_indices),dtype = np.int32)
         
         
-    def get_boundary_indcies(self):
-        boundaries = []
-        for i,axis_name in enumerate(['X','Y','Z'][:self.dimension] ):
-            coords = self.grid.coordinate_vectors[i]
-            axis_lim = [0,len(coords)-1]
-            
-            for fixed_point in axis_lim:
-                
-                shape = list(self.grid.shape)
-                shape[i] = 1
-                
-                indices = np.indices(shape,dtype = int)
-                indices = np.moveaxis(indices,0,-1).reshape(-1,3)
-                indices[:,i] += fixed_point
-                
-                boundaries.append(indices)
-                
-        
-        self.boundary_indices = np.unique(np.concatenate(boundaries,dtype= int),axis = 0).astype(np.int32)
-        
-        self.boundary_type = -1*np.ones(shape = (len(self.boundary_indices),self.num_inputs),dtype=np.int32)
-        self.boundary_value = np.zeros_like(self.boundary_type).astype(np.float32)
-
-    
     def set_interior_adj_array(self):
         interior_adjacency = np.zeros(shape = (len(self.boundary_indices),3),dtype = np.int32)
         
@@ -114,7 +97,7 @@ class GridBoundary(StencilModule):
     def forward(self,input_array):
         wp.copy(dest = self.output_array, src =input_array)
         thread_shape = (len(input_array),len(self.boundary_indices),self.num_inputs)
-        return boundary(self.kernel,self.grid.stencil_points,input_array,thread_shape,self.boundary_indices,self.boundary_type,self.boundary_value,self.interior_indices,self.interior_adjaceny,self.grid.levels,self.output_array)
+        return boundary(self.kernel,input_array,self.grid.dx,thread_shape,self.boundary_indices,self.boundary_type,self.boundary_value,self.interior_indices,self.interior_adjaceny,self.grid.levels,self.output_array)
 
     
     def init_stencil(self,input_array):

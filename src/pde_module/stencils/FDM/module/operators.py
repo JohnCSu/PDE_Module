@@ -13,7 +13,7 @@ class Laplacian(StencilModule):
         
     def forward(self,input_array,scale=1.):
         threads_shape = (input_array.shape[0],) + (self.grid.shape)
-        return laplacian(self.kernel,self.grid.stencil_points,threads_shape,input_array,scale,self.grid.levels,self.grid.dimension,self.output_array)
+        return laplacian(self.kernel,threads_shape,input_array,self.grid.dx,scale,self.grid.levels,self.grid.dimension,self.output_array)
     
     def init_stencil(self,input_array, *args, **kwargs):
         self.init_stencil_flag = False
@@ -55,7 +55,6 @@ class OuterProduct(StencilModule):
         self.init_output_array(vector_field_1)
         
         
-    
 class Convection(StencilModule):
     '''
     Solve the following 
@@ -73,8 +72,6 @@ class Convection(StencilModule):
     def forward(self, *args, **kwargs):
         return super().forward(*args, **kwargs)
         
-
-
 
 
 class Divergence(StencilModule):
@@ -102,7 +99,7 @@ class Divergence(StencilModule):
         
     def forward(self, input_array,scale = 1.):
         threads_shape = (input_array.shape[0],) + (self.grid.shape)
-        return divergence(self.kernel,self.grid.stencil_points,threads_shape,input_array,scale,self.grid.levels,self.grid.dimension,self.output_array)
+        return divergence(self.kernel,threads_shape,input_array,self.grid.dx,scale,self.grid.levels,self.grid.dimension,self.output_array)
     
     def init_stencil(self,input_array, *args, **kwargs):
         self.init_stencil_flag = False
@@ -127,7 +124,7 @@ class RowWiseDivergence(StencilModule):
 
     def forward(self, input_array,scale = 1.):
         threads_shape = (input_array.shape[0],) + (self.grid.shape)
-        return row_wise_divergence(self.kernel,self.grid.stencil_points,threads_shape,input_array,scale,self.grid.levels,self.grid.dimension,self.output_array)
+        return row_wise_divergence(self.kernel,threads_shape,input_array,self.grid.dx,scale,self.grid.levels,self.grid.dimension,self.output_array)
             
         
         
@@ -162,7 +159,7 @@ class Grad(StencilModule):
         
     def forward(self, input_array,scale = 1.):
         threads_shape = (input_array.shape[0],) + (self.grid.shape)
-        return grad(self.kernel,self.grid.stencil_points,threads_shape,input_array,scale,self.grid.levels,self.grid.dimension,self.output_array)
+        return grad(self.kernel,threads_shape,input_array,scale,self.grid.levels,self.grid.dimension,self.output_array)
     
     
     def init_stencil(self,input_array, *args, **kwargs):

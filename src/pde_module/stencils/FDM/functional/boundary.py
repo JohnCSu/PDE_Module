@@ -1,8 +1,8 @@
 import warp as wp
 
 def boundary(kernel,
-             grid_points:wp.array2d(dtype = float),
             current_values:wp.array4d(dtype = float),
+            dx:float,
             threads_shape:tuple[int],
             boundary_indices:wp.array2d(dtype=int),
             boundary_type:wp.array(dtype=int),
@@ -14,5 +14,5 @@ def boundary(kernel,
     '''
     Functional Version of boundary module. Only Applies boundary values and not ghost cell corections
     '''
-    wp.launch(kernel,dim = threads_shape, inputs = [grid_points,current_values,boundary_indices,boundary_type,boundary_value,interior_indices,interior_adjaceny,levels],outputs=[new_values])
+    wp.launch(kernel,dim = threads_shape, inputs = [current_values,dx,boundary_indices,boundary_type,boundary_value,interior_indices,interior_adjaceny,levels],outputs=[new_values])
     return new_values

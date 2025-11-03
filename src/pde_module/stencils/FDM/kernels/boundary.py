@@ -13,17 +13,18 @@ def dirichlet_ghost_cell_correction(boundary_value:float,adj_value:float,interio
         return 2.*boundary_value + adj_value
 
 
-def create_boundary_kernel(num_outputs):
+def create_boundary_kernel(num_outputs,float_dtype = wp.float32):
     @wp.kernel
-    def boundary_kernel(grid_points:wp.array2d(dtype = float),
-                        current_values:wp.array4d(dtype = wp.vec(length=num_outputs,dtype=float)),
+    def boundary_kernel(
+                        current_values:wp.array4d(dtype = wp.vec(length=num_outputs,dtype=float_dtype)),
+                        dx:float_dtype,
                         boundary_indices:wp.array2d(dtype=int),
                         boundary_type:wp.array(dtype=wp.vec(length=num_outputs,dtype=int)),
-                        boundary_value:wp.array(dtype=wp.vec(length=num_outputs,dtype=float)),
+                        boundary_value:wp.array(dtype=wp.vec(length=num_outputs,dtype=float_dtype)),
                         interior_indices: wp.array(dtype = int),
                         interior_adjaceny:wp.array(dtype = wp.vec3i),
                         levels:wp.vec3i,
-                        new_values:wp.array4d(dtype = wp.vec(length=num_outputs,dtype=float))):
+                        new_values:wp.array4d(dtype = wp.vec(length=num_outputs,dtype=float_dtype))):
         
         
         batch_id,i,output = wp.tid() # Loop through boundary_types
@@ -40,13 +41,11 @@ def create_boundary_kernel(num_outputs):
         
         nodeID = wp.vec3i(x_id,y_id,z_id)
         
-        
         adj_index = interior_indices[i]
         adj_vec = interior_adjaceny[adj_index]
         if boundary_type[i][output] == 0: # Dirichlet
             # Dirichlet so just set the value
             new_values[batch_id,x_id,y_id,z_id][output] = boundary_value[i][output]
-                
             #Update Ghost value
             for j in range(3):
                 if adj_vec[j] != 0:                    
@@ -68,8 +67,7 @@ def create_boundary_kernel(num_outputs):
                     ghostID = nodeID - inc_vec
                     adjID = nodeID + inc_vec
                     
-                    h = wp.abs(grid_points[axis,ghostID[axis]] - grid_points[axis,adjID[axis]]) 
-                    new_values[batch_id,ghostID[0],ghostID[1],ghostID[2]][output] = boundary_value[i][output] - wp.sign(grid_points.dtype(adj_vec[axis]))*current_values[batch_id,adjID[0],adjID[1],adjID[2]][output]*h
+                    new_values[batch_id,ghostID[0],ghostID[1],ghostID[2]][output] = boundary_value[i][output] - wp.sign(float_dtype(adj_vec[axis]))*current_values[batch_id,adjID[0],adjID[1],adjID[2]][output]*dx
             
 
     return boundary_kernel

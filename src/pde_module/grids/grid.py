@@ -12,8 +12,9 @@ class Grid:
     has_ghost_cells:bool = False
     
     
-    def __init__(self,dx,nx,ny=None,nz=None,origin = None,levels = None,warp_float_dtype = wp.float32):
-        
+    def __init__(self,grid_type,dx,nx,ny=None,nz=None,origin = None,levels = None,warp_float_dtype = wp.float32):
+        assert grid_type in {'cell','node'}
+        self.grid_type = grid_type
         self.dx = dx
         self.nodal_shape = []
         self.cell_shape = []
@@ -29,6 +30,10 @@ class Grid:
                 self.cell_shape.append(1)
             else:
                 raise ValueError()
+        
+        self.nodal_shape = tuple(self.nodal_shape)
+        self.cell_shape = tuple(self.cell_shape)
+        
         
         if origin is None:
             self.origin = (0.,)*3
@@ -75,13 +80,17 @@ class Grid:
         return levels
         
         
-    def create_grid_point_field(self,field_type,batch_size = None,output_type = 'warp'):
-        if field_type == 'cell':
+    def create_grid_point_field(self,batch_size = None,output_type = 'warp',grid_type = None):
+        
+        if grid_type is None:
+            grid_type = self.grid_type
+    
+        if grid_type == 'cell':
             coordinate_vectors = self.cell_centroids
-        elif field_type == 'node':
+        elif grid_type == 'node':
             coordinate_vectors = self.node_coordinate_arrays
         else:
-            raise ValueError(f'Valid options are strings "cell" or "node" got {field_type} instead')
+            raise ValueError(f'Valid options are strings "cell" or "node" got {grid_type} instead')
         
         
         coordinate_vectors = self._create_ghost_coordinate_arrays(*coordinate_vectors,levels=self.levels)
@@ -108,32 +117,38 @@ class Grid:
         
     
     
-    def _ghost_meshgrid(self,field_type):
-        if field_type == 'cell':
+    def _ghost_meshgrid(self,grid_type):
+        if grid_type is None:
+            grid_type = self.grid_type
+    
+        if grid_type == 'cell':
             coordinate_vectors = self.cell_centroids
-        elif field_type == 'node':
+        elif grid_type == 'node':
             coordinate_vectors = self.node_coordinate_arrays
         else:
-            raise ValueError(f'Valid options are strings "cell" or "node" got {field_type} instead')
+            raise ValueError(f'Valid options are strings "cell" or "node" got {grid_type} instead')
         
         
         coordinate_vectors = self._create_ghost_coordinate_arrays(*coordinate_vectors,levels=self.levels)
         
         return np.meshgrid(*coordinate_vectors,indexing='ij')
     
-    def initial_condition(self,field_type,func,**kwargs):
+    def initial_condition(self,func,grid_type = None,**kwargs):
         
-        meshgrid = self._ghost_meshgrid(field_type)
+        meshgrid = self._ghost_meshgrid(grid_type)
         output = func(*meshgrid,**kwargs) # Outputs would be N,M,O
         
         
-        if field_type == 'cell':
+        if grid_type is None:
+            grid_type = self.grid_type
+    
+        if grid_type == 'cell':
             shape_with_ghost = self.ghost_cell_shape
-        elif field_type == 'node':
+        elif grid_type == 'node':
             shape_with_ghost = self.ghost_nodal_shape
         else:
-            raise ValueError(f'Valid options are strings "cell" or "node" got {field_type} instead')
-          
+            raise ValueError(f'Valid options are strings "cell" or "node" got {grid_type} instead')
+        
           
         if output.shape == shape_with_ghost: # We have scalar output
             output = np.expand_dims(output,axis = (0,-1)) # We add a batch + vector output shape
@@ -146,11 +161,14 @@ class Grid:
         
         return wp.array(output,dtype =wp.vec(length = output.shape[-1],dtype = float),shape = output.shape[:-1])
         
-    def create_field(self,field_type,output_shape:int|tuple|list,batch_size:int,flatten:bool):
+    def create_field(self,grid_type,output_shape:int|tuple|list,batch_size:int,flatten:bool):
         
-        if field_type == 'cell':
+        if grid_type is None:
+            grid_type = self.grid_type
+        
+        if grid_type == 'cell':
             arr_shape = (batch_size,) + self.ghost_cell_shape
-        elif field_type == 'node':
+        elif grid_type == 'node':
             arr_shape = (batch_size,) + self.ghost_nodal_shape
         else:
             raise ValueError()
@@ -198,23 +216,63 @@ class Grid:
     def create_faces_field(self,output_shape:int|tuple|list,batch_size:int,flatten:bool):
         pass
     
-    def calculate_boundary_Nodes(self):
-        boundaries = []
-        for i,axis_name in enumerate(['X','Y','Z'][:self.dimension] ):
-            coords = self.nodal_shape[i]
-            axis_lim = [0,coords-1]
-            for fixed_point in axis_lim:
-                
-                shape = list(self.grid.shape)
-                shape[i] = 1
-                
-                indices = np.indices(shape,dtype = int)
-                indices = np.moveaxis(indices,0,-1).reshape(-1,3)
-                indices[:,i] += fixed_point
-                
-                boundaries.append(indices)
-                
-        self.boundary_indices = np.unique(np.concatenate(boundaries,dtype= int),axis = 0).astype(np.int32)
+    
+    @property
+    def shape(self):
+        '''
+        Grid shape excluding any ghost cells.
+        
+        shape tuple is given based on the value of self.grid_type
+        '''
+        if self.grid_type == 'cell':
+            return self.cell_shape
+        elif self.grid_type == 'node':
+            return self.nodal_shape
+        
+        raise ValueError('Somehow attribute grid_type was not cell or node')
+        
+    @property
+    def ghost_shape(self):
+        '''
+        Grid shape INCLUDING any ghost cells.
+        
+        shape tuple is given based on the value of self.grid_type
+        '''
+        
+        if self.grid_type == 'cell':
+            return self.ghost_cell_shape
+        elif self.grid_type == 'node':
+            return self.ghost_nodal_shape
+        
+        raise ValueError('Somehow attribute grid_type was not cell or node')
+        
+    
+    
+    @property
+    def boundary_node_indices(self):
+        '''
+        return a Nx3 array of all nodal indices located at the boundary. Done lazily as may not be needed
+        '''
+        if not hasattr(self,'_boundary_indices'):    
+            boundaries = []
+            for i,axis_name in enumerate(['X','Y','Z'][:self.dimension] ):
+                coords = self.nodal_shape[i]
+                axis_lim = [0,coords-1]
+                for fixed_point in axis_lim:
+                    
+                    shape = list(self.nodal_shape)
+                    shape[i] = 1
+                    
+                    indices = np.indices(shape,dtype = int)
+                    indices = np.moveaxis(indices,0,-1).reshape(-1,3)
+                    indices[:,i] += fixed_point
+                    
+                    boundaries.append(indices)
+                    
+            self._boundary_indices = np.unique(np.concatenate(boundaries,dtype= int),axis = 0).astype(np.int32)
+
+        return self._boundary_indices
+    
     
     def calculate_boundary_Faces(self):
         pass

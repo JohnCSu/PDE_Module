@@ -15,21 +15,16 @@ from pde_module.grids.grid import Grid
 
 
 if __name__ == '__main__':
-    n = 31
+    n = 41
     # x,y = np.linspace(0,1,n),np.linspace(0,1,n)
-    grid = Grid(dx = 1/n, nx = n, ny = n,levels = (1,1))
+    grid = Grid('node',dx = 1/n, nx = n, ny = n,levels = (1,1))
     
     
 
     IC = lambda x,y,z: (np.sin(np.pi*x)*np.sin(np.pi*y))
+    initial_value =grid.initial_condition(IC)
     
-    
-    space = grid.create_grid_point_field(field_type='node',batch_size=2)
-    print(space.shape)
-    print(wp.array(space,dtype= wp.vec3).shape)
-    initial_value =grid.initial_condition('node',IC)
-    
-    exit()
+   
     
     # to_plot = grid.trim_ghost_values(initial_value)
 
@@ -37,16 +32,16 @@ if __name__ == '__main__':
     
     dx = grid.dx
     dt = float(dx**2/(4*0.1))
-    grid.to_warp()
+
     
     boundary = GridBoundary(grid,1,dynamic_array_alloc= False)
     boundary.dirichlet_BC('ALL',0.)
     
     laplcian_stencil = Laplacian(grid,1,dynamic_array_alloc=False)
-    
+    # exit()    
     #Equivalent Hopefull
-    grad_stencil = Grad(grid,dynamic_array_alloc= False)
-    div_stencil = Divergence(grid,dynamic_array_alloc= False)
+    # grad_stencil = Grad(grid,dynamic_array_alloc= False)
+    # div_stencil = Divergence(grid,dynamic_array_alloc= False)
     
     time_step = ForwardEuler(grid,1,dynamic_array_alloc= False)
     
@@ -55,18 +50,18 @@ if __name__ == '__main__':
     input_values = initial_value
     print(input_values.numpy()[0,:,:,0,0])
     
-    # for i in range(0):
-    #     boundary_corrected_values = boundary(input_values)
-    #     # print(boundary_corrected_values.numpy()[0,:,:,0,0])        
-    #     laplace = laplcian_stencil(boundary_corrected_values,scale =0.1)
-    #     new_value = time_step(boundary_corrected_values,laplace,dt)
-    #     input_values = new_value
+    for i in range(1001):
+        boundary_corrected_values = boundary(input_values)
+        # print(boundary_corrected_values.numpy()[0,:,:,0,0])        
+        laplace = laplcian_stencil(boundary_corrected_values,scale =0.1)
+        new_value = time_step(boundary_corrected_values,laplace,dt)
+        input_values = new_value
 
-    #     t += dt
-    #     if t > 1.:
-    #         break
+        t += dt
+        if t > 1.:
+            break
         
-    # print(f't = {t:.3e} max value = {np.max(input_values.numpy().max()):.3E}, dt = {dt:.3E}')
+    print(f't = {t:.3e} max value = {np.max(input_values.numpy().max()):.3E}, dt = {dt:.3E}')
     
 
     # to_plot = grid.trim_ghost_values(input_values)

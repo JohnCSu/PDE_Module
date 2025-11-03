@@ -9,12 +9,12 @@ def create_Laplacian_kernel(dimension,num_inputs,levels):
     We need to ensure num_inputs == num_outputs
     '''
     # get_adjacent_points_along_axis = get_adjacent_points_along_axis_function(levels)
-    get_adjacent_points_along_axis = get_adjacent_points(levels)
+    
     get_adjacent_values = get_adjacent_values_along_axis(num_inputs,levels)
     D = dimension
     
     @wp.kernel
-    def laplacian_kernel(grid_points:wp.array2d(dtype = float),
+    def laplacian_kernel(
                         current_values:wp.array4d(dtype = wp.vec(length=num_inputs,dtype=float)),
                         dx:float,
                         alpha:float,
@@ -35,20 +35,13 @@ def create_Laplacian_kernel(dimension,num_inputs,levels):
         node_ID[1] = y_id
         node_ID[2] = z_id
         
-        # Step 2. Get current indexed grid point and value
-        current_point = wp.vec(length = 3,dtype = float)
-        current_point[0] = grid_points[0,x_id]
-        current_point[1] = grid_points[1,y_id]
-        current_point[2] = grid_points[2,z_id]
         
         current_value = current_values[batch_id,x_id,y_id,z_id]
         laplace = wp.vec(length = wp.static(num_inputs),dtype = float)
         for axis in range(wp.static(D)):
-            adj_points = get_adjacent_points_along_axis(grid_points,node_ID[axis],axis,levels[axis])
             # print(adj_points)
             adj_values = get_adjacent_values(current_values,batch_id,x_id,y_id,z_id,axis)
-            
-            laplace += second_order.central_difference(adj_points[1],current_point[axis],adj_points[0], adj_values[1],current_value,adj_values[0]) 
+            laplace += second_order.central_difference(adj_values[1],current_value,adj_values[0],dx) 
         
         new_values[batch_id,x_id,y_id,z_id] = alpha*laplace
         
