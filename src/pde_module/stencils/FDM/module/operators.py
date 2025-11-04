@@ -44,7 +44,7 @@ class OuterProduct(StencilModule):
         self.vector_lengths = (vector_A_Length,vector_B_Length)
         
     def forward(self,vector_field_1,vector_field_2,scale = 1.):
-        threads_shape = (vector_field_1.shape[0],) + self.grid.stencil_shape
+        threads_shape = vector_field_1.shape
         return outer_product(self.kernel,threads_shape,vector_field_1,vector_field_2,scale,self.output_array)
 
     def init_stencil(self, vector_field_1,vector_field_2,scale = 1.,*args, **kwargs):
@@ -148,7 +148,6 @@ class Grad(StencilModule):
         - 'vector' - We apply divergence in a vector field fashion. The number of inputs must match dimension of grid
         - 'tensor' - We apply divergence is a row wise fashion
     
-    
     '''
     def __init__(self, grid,num_outputs = None,type = 'vector',*, dynamic_array_alloc = True, **kwargs):
         if num_outputs is None:
@@ -159,7 +158,14 @@ class Grad(StencilModule):
         
     def forward(self, input_array,scale = 1.):
         threads_shape = (input_array.shape[0],) + (self.grid.shape)
-        return grad(self.kernel,threads_shape,input_array,scale,self.grid.levels,self.grid.dimension,self.output_array)
+        return grad(self.kernel,
+                    threads_shape,
+                    input_array,
+                    self.grid.dx,
+                    scale,
+                    self.grid.levels,
+                    self.grid.dimension,
+                    self.output_array)
     
     
     def init_stencil(self,input_array, *args, **kwargs):

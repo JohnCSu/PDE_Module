@@ -50,7 +50,7 @@ class Grid:
         # self.axis_ranges = [(o,dx*n) for o,n in zip(self.origin,self.shape)]
         # self.cell_centroids = tuple( [np.linspace(o+dx/2.,l[-1] - dx/2.,n) for o,l,n in zip(self.origin,self.axis_ranges,self.shape)])
         self.node_coordinate_arrays = tuple(np.linspace(o,o+self.dx*(n-1),n) for o,n in zip(self.origin,self.nodal_shape))
-        self.cell_centroids = tuple( [np.linspace(o+dx/2.,l[-1]-dx/2.,n) for o,l,n in zip(self.origin,self.node_coordinate_arrays,self.cell_shape)])
+        self.cell_centroids = tuple( [np.linspace(o+dx/2.,l[-1]-dx/2.,n) if n > 1 else np.array([o]) for o,l,n in zip(self.origin,self.node_coordinate_arrays,self.cell_shape)])
         
         self.wp_float_type = warp_float_dtype
         self.np_float_type = wp.dtype_to_numpy(self.wp_float_type)
@@ -62,7 +62,7 @@ class Grid:
         
     def add_ghost_cells(self,levels):
         if levels is None:
-            return (0,0,0)
+            return (0.,0.,0.)
             
         elif isinstance(levels,int):
             levels = (levels,)*self.dimension
@@ -115,9 +115,10 @@ class Grid:
         else:
             raise ValueError(f'output_type must be string warp or numpy got {output_type} instead')
         
-    
-    
-    def _ghost_meshgrid(self,grid_type):
+    def meshgrid(self,grid_type,add_ghost,for_plotting = False):
+        '''
+        return a list of meshgrid (with ij indexing) arrays of gridpoints
+        '''
         if grid_type is None:
             grid_type = self.grid_type
     
@@ -128,16 +129,18 @@ class Grid:
         else:
             raise ValueError(f'Valid options are strings "cell" or "node" got {grid_type} instead')
         
+        if add_ghost:
+            coordinate_vectors = self._create_ghost_coordinate_arrays(*coordinate_vectors,levels=self.levels)
         
-        coordinate_vectors = self._create_ghost_coordinate_arrays(*coordinate_vectors,levels=self.levels)
-        
+        if for_plotting:
+            return np.meshgrid(*coordinate_vectors[:self.dimension],indexing='ij')
+         
         return np.meshgrid(*coordinate_vectors,indexing='ij')
     
     def initial_condition(self,func,grid_type = None,**kwargs):
         
-        meshgrid = self._ghost_meshgrid(grid_type)
+        meshgrid = self.meshgrid(grid_type,add_ghost=True)
         output = func(*meshgrid,**kwargs) # Outputs would be N,M,O
-        
         
         if grid_type is None:
             grid_type = self.grid_type
@@ -179,7 +182,7 @@ class Grid:
         assert isinstance(output_shape,(tuple,list))
         
         if len(output_shape) == 1:
-            dtype = wp.vec(length = output_shape,dtype = self.wp_float_type)
+            dtype = wp.vec(length = output_shape[0],dtype = self.wp_float_type)
         elif len(output_shape) == 2:
             dtype = wp.mat(shape = output_shape,dtype = self.wp_float_type)
         else:
@@ -280,6 +283,29 @@ class Grid:
     def calculate_internal_Faces(self):
         pass
     
+    
+    def trim_ghost_values(self,arr,convert_to_numpy = True):
+        '''
+        Trim ghost cells from array
+        '''
+        
+        if convert_to_numpy:
+            assert isinstance(arr,wp.array)
+            arr = arr.numpy()
+        else:
+            assert isinstance(arr,np.ndarray), 'array must be numpy array if convert to numpy is False '
+            
+            
+        slices = []
+        for i,level in enumerate(self.levels):
+            if level == 0:
+                slices.append(0)
+            else:
+                start = level
+                end = (arr.shape[1+i])-level
+                slices.append(slice(start,end))
+            
+        return arr[:,slices[0],slices[1],slices[2]]
 
     @staticmethod
     def _create_ghost_coordinate_arrays(x:np.ndarray,y:np.ndarray,z:np.ndarray,levels:tuple):

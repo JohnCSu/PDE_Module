@@ -215,7 +215,8 @@ class NodeGrid():
         if convert_to_numpy:
             assert isinstance(arr,wp.array)
             arr = arr.numpy()
-            
+        else:
+            assert isinstance(arr,np.ndarray), 'array must be numpy array if convert to numpy is False '
             
             
         slices = []

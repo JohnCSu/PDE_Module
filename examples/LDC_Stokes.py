@@ -11,7 +11,7 @@ wp.init()
 from typing import Callable,Any
 import matplotlib.pyplot as plt
 from collections import deque
-from pde_module.grids import NodeGrid
+from pde_module.grids import Grid
 
 '''
 LID DRIVEN CAVITY
@@ -44,13 +44,13 @@ CFL_LIMIT - constant to ensure CFL is not violated set to 0.1
 
 
 if __name__ == '__main__':
-    n = 101
-    x,y = np.linspace(0,1,n),np.linspace(0,1,n)
-    grid = NodeGrid(x,y)
+    n = 101 # Use Odd number of points!
+    dx = 1/(n-1)
+    grid = Grid('node',dx=dx,nx = n,ny = n,levels = 1)
 
     t = 0
     
-    dx = x[1] - x[0]
+    dx = grid.dx
     Re = 100.
     viscosity = 1/Re
     beta = 0.5
@@ -58,10 +58,8 @@ if __name__ == '__main__':
     
     dt = min(CFL_LIMIT*float(dx**2/(viscosity)),CFL_LIMIT*dx/(1+beta))
     print(f'{dt=:.3E} {beta=:.3E} {viscosity=:.3E}')
-    # dt = 1.e-3
-    grid.to_warp()
     
-    u_field = grid.create_grid_with_ghost(2)
+    u_field = grid.create_nodal_field(2)
     u_boundary = GridBoundary(grid,2,dynamic_array_alloc= False)
     u_boundary.dirichlet_BC('ALL',0.)
     u_boundary.dirichlet_BC('+Y',1.,0)
@@ -71,7 +69,7 @@ if __name__ == '__main__':
     u_div = Divergence(grid)
     u_div_row = RowWiseDivergence(grid,(1,2))
     
-    p_field = grid.create_grid_with_ghost(1)
+    p_field = grid.create_nodal_field(1)
     p_boundary = GridBoundary(grid,1,dynamic_array_alloc=False)
     p_boundary.vonNeumann_BC('ALL',0.)
     p_boundary.dirichlet_BC(0,0.)
@@ -88,7 +86,7 @@ if __name__ == '__main__':
     p_sum = ElementWiseMap(func,grid,dynamic_array_alloc=False)
     u_sum = ElementWiseMap(func,grid,dynamic_array_alloc=False)
     
-    for i in range(30_000):
+    for i in range(10_001):
         # Apply BC to u and p fields
         u = u_boundary(u)
         p = p_boundary(p)
@@ -115,16 +113,12 @@ if __name__ == '__main__':
     p_plot = grid.trim_ghost_values(p)
     u_plot = to_plot.squeeze()
     
-    u = to_plot[0,:,:,0]
-    v = to_plot[0,:,:,1]
+    u = u_plot[:,:,0]
+    v = u_plot[:,:,1]
     u_mag = np.sqrt(u**2+v**2)
     p = p_plot.squeeze()
-    meshgrid = grid.plt_meshgrid
-    meshgrid = [m.T for m in meshgrid]
-    # print(f'max u {np.max(u):.3E}')
-    
-    # plt.quiver(*meshgrid[::-1],u.T,v.T)
-    # plt.show()
+    meshgrid = grid.meshgrid('node',False,True)
+    meshgrid = [m for m in meshgrid]
     
     plt.contourf(*meshgrid[::-1],u.T,cmap ='jet',levels = 100)
     plt.colorbar()
