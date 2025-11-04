@@ -115,9 +115,9 @@ class Grid:
         else:
             raise ValueError(f'output_type must be string warp or numpy got {output_type} instead')
         
-    def meshgrid(self,grid_type,add_ghost,for_plotting = False):
+    def meshgrid(self,grid_type,add_ghost,for_plotting = False,indexing = 'xy'):
         '''
-        return a list of meshgrid (with ij indexing) arrays of gridpoints
+        return a list of meshgrid (with xy indexing) arrays of gridpoints
         '''
         if grid_type is None:
             grid_type = self.grid_type
@@ -133,9 +133,9 @@ class Grid:
             coordinate_vectors = self._create_ghost_coordinate_arrays(*coordinate_vectors,levels=self.levels)
         
         if for_plotting:
-            return np.meshgrid(*coordinate_vectors[:self.dimension],indexing='ij')
+            return np.meshgrid(*coordinate_vectors[:self.dimension],indexing=indexing)
          
-        return np.meshgrid(*coordinate_vectors,indexing='ij')
+        return np.meshgrid(*coordinate_vectors,indexing=indexing)
     
     def initial_condition(self,func,grid_type = None,**kwargs):
         
@@ -336,19 +336,3 @@ class Grid:
 
 
 
-class Faces():
-    dimension:int
-    grid:Grid
-    normals: wp.array
-    area:float
-    owners:wp.array
-    
-    def __init__(self,grid):
-        self.dimension = grid.dimension
-        self.grid = grid
-        
-    def calculate_boundary_Faces(self):
-        pass
-    
-    def create_faces_field(self):
-        pass 

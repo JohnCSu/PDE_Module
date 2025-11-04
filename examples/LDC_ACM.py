@@ -1,16 +1,13 @@
 import numpy as np
 import warp as wp
 
-
 from pde_module.stencils.FDM.module.operators import Laplacian,Grad,Divergence,OuterProduct,RowWiseDivergence
 from pde_module.stencils.FDM.module.time_integrators import ForwardEuler
 from pde_module.stencils.FDM.module.boundary import GridBoundary
 from pde_module.stencils.FDM.module.map import ElementWiseMap
 wp.init()
 # wp.config.mode = "debug"
-from typing import Callable,Any
 import matplotlib.pyplot as plt
-from collections import deque
 from pde_module.grids import Grid
 
 '''
@@ -83,9 +80,8 @@ if __name__ == '__main__':
     p = p_field
     # print(input_values.numpy()[0,:,:,0,0])
     
-    
     # func = lambda x,y: x+y
-    p_sum = ElementWiseMap(lambda x,y: x+y,grid,dynamic_array_alloc=False)
+    # p_sum = ElementWiseMap(lambda x,y: x+y,grid,dynamic_array_alloc=False)
     # u_sum = ElementWiseMap(lambda x,y: x+y,grid,dynamic_array_alloc=False)
     u_sum = ElementWiseMap(lambda x,y,z: x+y+z,grid,dynamic_array_alloc=False)
     
@@ -130,22 +126,22 @@ if __name__ == '__main__':
     v = u_plot[:,:,1]
     u_mag = np.sqrt(u**2+v**2)
     p = p_plot.squeeze()
-    meshgrid = grid.meshgrid('node',False,True)
+    meshgrid = grid.meshgrid('node',False,True,indexing='xy')
     meshgrid = [m for m in meshgrid]
     # print(f'max u {np.max(u):.3E}')
     
-    plt.quiver(*meshgrid[::-1],u.T,v.T)
+    plt.quiver(*meshgrid[::-1],u,v)
     plt.show()
     
-    plt.contourf(*meshgrid[::-1],u.T,cmap ='jet',levels = 100)
+    plt.contourf(*meshgrid[::-1],u,cmap ='jet',levels = 100)
     plt.colorbar()
     plt.show()
     
-    plt.contourf(*meshgrid[::-1],v.T,cmap ='jet',levels = 100)
+    plt.contourf(*meshgrid[::-1],v,cmap ='jet',levels = 100)
     plt.colorbar()
     plt.show()
     
-    plt.contourf(*meshgrid[::-1],u_mag.T,cmap ='jet',levels = 100)
+    plt.contourf(*meshgrid[::-1],u_mag,cmap ='jet',levels = 100)
     plt.colorbar()
     plt.show()
     
@@ -155,7 +151,7 @@ if __name__ == '__main__':
     u_benchmark = pd.read_csv(r'examples\u_velocity_results.txt',sep= '\t')
     
     
-    x_05 = meshgrid[0][:,n//2]
+    x_05 = meshgrid[0][n//2,:]
     v_05 = v[:,n//2]
     
     
@@ -164,7 +160,7 @@ if __name__ == '__main__':
     plt.plot(x_05,v_05)
     plt.show()
     
-    y_05 = meshgrid[1][n//2,:]
+    y_05 = meshgrid[1][:,n//2]
     u_05 = u[n//2,:]
     
     

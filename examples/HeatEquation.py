@@ -37,11 +37,6 @@ if __name__ == '__main__':
     boundary.dirichlet_BC('ALL',0.)
     
     laplcian_stencil = Laplacian(grid,1,dynamic_array_alloc=False)
-    # exit()    
-    #Equivalent Hopefull
-    # grad_stencil = Grad(grid,dynamic_array_alloc= False)
-    # div_stencil = Divergence(grid,dynamic_array_alloc= False)
-    
     time_step = ForwardEuler(grid,1,dynamic_array_alloc= False)
     
     # with wp.ScopedCapture(device="cuda") as iteration_loop:
