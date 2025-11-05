@@ -1,6 +1,8 @@
 import warp as wp
 import numpy as np
 from math import prod
+from .faces import Faces
+
 
 class Grid:
     '''
@@ -10,7 +12,7 @@ class Grid:
     wp_float_type:wp.float32 | wp.float64
     np_float_type:np.float32 | np.float64
     has_ghost_cells:bool = False
-    
+    faces:Faces | None = None
     
     def __init__(self,grid_type,dx,nx,ny=None,nz=None,origin = None,levels = None,warp_float_dtype = wp.float32):
         assert grid_type in {'cell','node'}
@@ -59,7 +61,12 @@ class Grid:
         self.ghost_cell_shape = tuple(axis+2*level for axis,level in zip(self.cell_shape,self.levels))
         self.ghost_nodal_shape = tuple(axis+2*level for axis,level in zip(self.nodal_shape,self.levels))
 
+
+    def set_Faces(self,boundaryOnly = True ):
+        if self.faces is None:
+            self.faces = Faces(self.origin,self.dx,self.cell_shape,self.dimension)
         
+    
     def add_ghost_cells(self,levels):
         if levels is None:
             return (0.,0.,0.)

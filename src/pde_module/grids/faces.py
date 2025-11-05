@@ -25,13 +25,18 @@ class Faces():
         self.boundary_groups = dict()    
         
         
-        
-        self.ownnerNeighbors = -1*np.ones(shape =(self.num_faces,2),dtype = np.int32)
+        self.ownerNeighbors = -1*np.ones(shape =(self.num_faces,2),dtype = np.int32)
         self.normals_mapping = np.empty(shape=self.num_faces,dtype=np.float32)
-        self.normals = np.zeros(shape = (2*self.dimension,self.dimension),dtype= np.float32)
+        self.normals = self.set_normals()
         
+    
+    def set_normals(self):
+        normals = np.zeros(shape = (self.dimension,2,self.dimension),dtype= np.float32)
+        for axis in range(self.dimension):
+            for j,normal in enumerate([-1.,1.]):
+                    normals[axis,j,axis] = normal
         
-        
+        return normals.reshape((-1,self.dimension))    
         
     @property
     def area(self):
@@ -45,8 +50,6 @@ class Faces():
             faces_shape = list(self.grid_cell_shape)
             faces_shape[axis] +=1
             num_faces += prod(faces_shape)
-            
-        
         return num_faces
     
     @property
@@ -67,29 +70,31 @@ class Faces():
         
     def calculate_boundary_Faces(self):
         
-        boundary_face_owners = self.ownnerNeighbors
+        boundary_face_owners = self.ownerNeighbors
             
         initial = 0
+        
+        
         for axis,axis_Name in zip(range(self.dimension),['X','Y','Z']):
             faces_shape = list(self.grid_cell_shape)
             faces_shape[axis] = 1 
             num_faces = prod(faces_shape)
             
-            for fixed_point,side in zip([0,self.grid_cell_shape[axis]-1],['-','+']):
+            for j,(fixed_point,side) in enumerate(zip([0,self.grid_cell_shape[axis]-1],['-','+'])):
                 indices = [slice(None),slice(None),slice(None)]
                 indices[axis] = fixed_point
-                boundary_face_owners[initial:initial+num_faces,0] = self.cellIDs[tuple(indices)].squeeze() # tuple indexing (each element corresponds to element) is different to list indexing with numpy arrays
-                
+                boundary_face_owners[initial:initial+num_faces,0] = self.cellIDs[tuple(indices)].squeeze().flatten() # tuple indexing (each element corresponds to element) is different to list indexing with numpy arrays
+                self.normals_mapping[initial:initial+num_faces] = axis*2 + j
                 group_name = side +axis_Name 
                 self.boundary_groups[group_name] = np.arange(0,num_faces) + initial
                 
                 initial += num_faces
-        
+        self.boundary_ownerNeighbors = self.ownerNeighbors[:initial]
         
     def calculate_internal_Faces(self):
         
         # internal_face_owners = -1*np.ones(shape = self.num_internal_faces,dtype= np.int32)
-        internal_face_owners = self.ownnerNeighbors
+        internal_face_owners = self.ownerNeighbors
         
         intital = self.num_boundary_faces
         for axis in range(self.dimension):
@@ -106,50 +111,21 @@ class Faces():
             
             intital += num_faces
             
-
+        self.internal_ownerNeighbors = self.ownerNeighbors[self.num_boundary_faces:intital]
             
         
     def create_faces_field(self):
         pass 
     
 if __name__ == '__main__':
-    f = Faces((0.,0.,0.),dx = 0.5,grid_cell_shape=(3,3,1),dimension=2)
+    f = Faces((0.,0.,0.),dx = 0.5,grid_cell_shape=(3,3,2),dimension=3)
     
     
     f.calculate_boundary_Faces()
     f.calculate_internal_Faces()
-    print(f.ownnerNeighbors)
+    print(f.ownerNeighbors)
     print(f.num_faces,f.num_boundary_faces,f.num_internal_faces)
-    # f.calculate_boundary_Faces()
-    # # f.calculate_internal_Faces()
-    # print(f.boundary_cells)
-    # print(f.owners)
-    # print()
-    
-    # Nx, Ny, Nz = (3,3,1)
-
-
-    # g = (3,3,1)
-    # # total cells
-    # Nc = Nx * Ny * Nz
-    # ijk = np.indices((Nx,Ny,Nz),dtype = np.int32)
-    # # ijk = np.moveaxis(ijk,0,-1) # Have the indices axis at end instead
-    # cells_ijk = np.moveaxis(ijk,0,-1).reshape(-1,3)
-    
-    
-    # x_owner = cells_ijk[:,]
-    # # x faces
-    # x_owner = ijk[:,:-1,:,:].reshape(3,-1)
-    # x_neighbor = ijk[:,1:,:,:].reshape(3,-1)
-    # print(x_owner)
-    
-    # x_owner = np.ravel_multi_index(x_owner,dims = g)
-    # x_neighbor = np.ravel_multi_index(x_neighbor,dims = g)
-    # print(x_owner)
-    # print(x_neighbor)
-    # print('hi')
-    # print(cells_ijk)
-    
+    print(f.normals)
     
     
     
