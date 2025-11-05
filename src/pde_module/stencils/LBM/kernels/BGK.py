@@ -16,21 +16,21 @@ def create_BGK_kernel(dimension,num_distributions):
     
     
     @wp.kernel
-    def BGK_kernel(f_old:wp.array3d(dtype = dist_vec),
-                   density_field:wp.array(ndim=dimension+1,dtype= wp.vec(1,float)),
-                   velocity_field:wp.array(ndim=dimension+1,dtype= wp.vec(dimension,float)),
+    def BGK_kernel(f_old:wp.array4d(dtype = dist_vec),
+                   density_field:wp.array4d(dtype= wp.vec(1,float)),
+                   velocity_field:wp.array4d(dtype= wp.vec(dimension,float)),
                    discrete_velocities:dist_mat,
                    discrete_weights:dist_vec,
                    relaxation_time:float,
-                   f_new:wp.array3d(dtype = dist_vec)):
+                   f_new:wp.array4d(dtype = dist_vec)):
         
         
-        batch_id,x_id,y_id = wp.tid()
+        batch_id,x_id,y_id,z_id = wp.tid()
         
-        density = density_field[batch_id,x_id,y_id][0]
-        velocity = velocity_field[batch_id,x_id,y_id]
+        density = density_field[batch_id,x_id,y_id,z_id][0]
+        velocity = velocity_field[batch_id,x_id,y_id,z_id]
         for i in range(wp.static(len(discrete_velocities))):
-            f_new[batch_id,x_id,y_id][i] = f_old[batch_id,x_id,y_id][i] - 1./relaxation_time * (f_old[batch_id,x_id,y_id][i] - f_eq(density,velocity,discrete_velocities[i],discrete_weights[i]))
+            f_new[batch_id,x_id,y_id,z_id][i] = f_old[batch_id,x_id,y_id,z_id][i] - 1./relaxation_time * (f_old[batch_id,x_id,y_id,z_id][i] - f_eq(density,velocity,discrete_velocities[i],discrete_weights[i]))
             
 
 
@@ -38,7 +38,5 @@ def create_BGK_kernel(dimension,num_distributions):
         
         
 if __name__ == '__main__':
-    create_BGK_kernel(2,9)
-        
-        wp.launch
-    
+
+    pass
