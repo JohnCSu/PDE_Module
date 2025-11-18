@@ -1,38 +1,17 @@
 from pde_module.stencils.LBM.kernels import create_streaming_kernel,create_BGK_kernel
-from pde_module.stencils.LBM.modules.gridBoundary import GridBoundary
+from pde_module.stencils.LBM.modules.gridBoundary import LBMGridBoundary
 import warp as wp
 from pde_module.grids import Grid
+from pde_module.grids.latticeModels import D2Q9_Model 
 import numpy as np
 wp.config.mode = 'debug'
 wp.init()
 
 
-class D2Q9_Model:
-    def __init__(self):
-        self.num_discrete_velocities = 9
-        
-        self.D2Q9_velocities = np.array([
-            [ 0,  1,  0, -1,  0,  1, -1, -1,  1,],
-            [ 0,  0,  1,  0, -1,  1,  1, -1, -1,]
-        ]).swapaxes(0,1)
-        self.velocity_directions_int =wp.mat(shape = (self.num_discrete_velocities,self.dimension),dtype = int)(self.D2Q9_velocities)
-        
-        self.velocity_directions_float = wp.mat(shape = (self.num_discrete_velocities,self.dimension),dtype = float)(self.D2Q9_velocities.astype( self.float_dtype))
-        
-        
-        self.indices = wp.vec(length = self.num_discrete_velocities,dtype = int)(np.arange(self.num_discrete_velocities,dtype= int))
-        
-        self.weights = wp.vec(length = self.num_discrete_velocities,dtype = wp.dtype_from_numpy(self.float_dtype) )([
-                                4/9,                        # Center Velocity [0,]
-                                1/9,  1/9,  1/9,  1/9,      # Axis-Aligned Velocities [1, 2, 3, 4]
-                                1/36, 1/36, 1/36, 1/36,     # 45 ° Velocities [5, 6, 7, 8]
-                                ])
-
-
 n = 101 # Use Odd number of points!
 dx = 1/(n-1)
 LBM = Grid('cell',dx=dx,nx = n,ny = n,levels = 1)
-D2Q9 = D2Q9_Model()
+LBM.set_LBM(D2Q9_Model(),density= 1, dynamic_viscosity= 0.01,u_ref = 1.,u_target= 0.1)
 t = 0
 
 dx = LBM.dx
@@ -45,21 +24,31 @@ dt = min(CFL_LIMIT*float(dx**2/(viscosity)),CFL_LIMIT*dx/(1+1/beta))
 print(f'{dt=:.3E} {beta=:.3E} {viscosity=:.3E}')
 
 
-f_old = LBM.create_cell_field(9)
-f_new = LBM.create_cell_field(9)
-vel_field = LBM.create_cell_field(3)
+f_0 = LBM.create_cell_field(9)
+f_1 = LBM.create_cell_field(9)
+f_2 = LBM.create_cell_field(9)
+
+vel_field = LBM.create_cell_field(2)
 rho_field = LBM.create_cell_field(1)
+
+D2Q9 = LBM.LBM_lattice
+
+boundary = LBMGridBoundary(LBM,dynamic_array_alloc=False)
+
+
+boundary.no_slip('ALL')
+boundary.moving_wall('+Y',1.,axis = 0)
 
 BGK_kernel = create_BGK_kernel(LBM.dimension,D2Q9.num_discrete_velocities)
 stream_kernel = create_streaming_kernel(LBM.dimension,D2Q9.num_discrete_velocities)
 
 
-wp.launch(BGK_kernel,dim = ,inputs=[f_old,rho_field,vel_field,D2Q9.velocity_directions_float,D2Q9.weights,0.5],outputs=[f_new])
-wp.launch(stream_kernel,dim = ,inputs=[f_old,D2Q9.velocity_directions_int],outputs=[f_new])
+wp.launch(BGK_kernel,dim = f_0.shape ,inputs=[f_0,rho_field,vel_field,D2Q9.velocity_directions_float,D2Q9.weights,0.5],outputs=[f_1])
+wp.launch(stream_kernel,dim = f_1.shape,inputs=[f_1,D2Q9.velocity_directions_int],outputs=[f_2])
 
 
-a = GridBoundary(LBM)
-a.define_indices()
+# a = GridBoundary(LBM)
+# a.define_indices()
 
-print(a.boundaries['-X'].shape)
-print(a.boundaries['-Y'].shape)
+# print(a.boundaries['-X'].shape)
+# print(a.boundaries['-Y'].shape)

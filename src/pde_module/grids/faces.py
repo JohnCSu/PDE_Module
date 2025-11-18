@@ -26,9 +26,9 @@ class Faces():
         
         
         self.ownerNeighbors = -1*np.ones(shape =(self.num_faces,2),dtype = np.int32)
-        self.normals_mapping = np.empty(shape=self.num_faces,dtype=np.float32)
+        self.wallIDs = np.empty(shape=self.num_faces,dtype=np.int32)
         self.normals = self.set_normals()
-        
+        self.calculate_boundary_Faces()
     
     def set_normals(self):
         normals = np.zeros(shape = (self.dimension,2,self.dimension),dtype= np.float32)
@@ -84,12 +84,13 @@ class Faces():
                 indices = [slice(None),slice(None),slice(None)]
                 indices[axis] = fixed_point
                 boundary_face_owners[initial:initial+num_faces,0] = self.cellIDs[tuple(indices)].squeeze().flatten() # tuple indexing (each element corresponds to element) is different to list indexing with numpy arrays
-                self.normals_mapping[initial:initial+num_faces] = axis*2 + j
+                self.wallIDs[initial:initial+num_faces] = axis*2 + j
                 group_name = side +axis_Name 
                 self.boundary_groups[group_name] = np.arange(0,num_faces) + initial
                 
                 initial += num_faces
         self.boundary_ownerNeighbors = self.ownerNeighbors[:initial]
+        self.boundary_groups['ALL'] = np.arange(self.num_boundary_faces,dtype=np.int32)
         
     def calculate_internal_Faces(self):
         

@@ -2,7 +2,7 @@ import warp as wp
 import numpy as np
 from math import prod
 from .faces import Faces
-
+from .latticeModels import LatticeUnits,LatticeModel
 
 class Grid:
     '''
@@ -13,6 +13,9 @@ class Grid:
     np_float_type:np.float32 | np.float64
     has_ghost_cells:bool = False
     faces:Faces | None = None
+    is_LBM:bool = False
+    is_FVM:bool = False
+    is_FDM:bool = False
     
     def __init__(self,grid_type,dx,nx,ny=None,nz=None,origin = None,levels = None,warp_float_dtype = wp.float32):
         assert grid_type in {'cell','node'}
@@ -66,6 +69,11 @@ class Grid:
         if self.faces is None:
             self.faces = Faces(self.origin,self.dx,self.cell_shape,self.dimension)
         
+    
+    def set_LBM(self,latticeModel:LatticeModel,density,dynamic_viscosity,u_ref,u_target = 0.1):
+        self.LBM_units = LatticeUnits(self.dx,density,dynamic_viscosity,u_ref,u_target)
+        self.LBM_lattice = latticeModel 
+        self.is_LBM = True
     
     def add_ghost_cells(self,levels):
         if levels is None:
