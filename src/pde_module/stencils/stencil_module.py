@@ -69,7 +69,6 @@ class StencilModule():
             raise TypeError('num_inputs must be either int for vector or tuple for matrix dtype')
         
     
-    
     @property
     def output_array(self):
         '''
