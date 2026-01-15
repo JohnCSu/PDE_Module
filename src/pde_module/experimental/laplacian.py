@@ -1,10 +1,11 @@
 # from .stencil import Stencil
-from .uniformGridStencil import UniformGridStencil
+from .ExplicitUniformGridStencil import ExplicitUniformGridStencil
 import warp as wp
 from warp.types import vector,matrix
 # from .types import *
+from .hooks import *
 
-class Laplacian(UniformGridStencil):
+class Laplacian(ExplicitUniformGridStencil):
     '''
     Calculate Divergence using uniform central differences
     '''
@@ -18,33 +19,33 @@ class Laplacian(UniformGridStencil):
             raise ValueError('Custom stencil not implemented yet')        
         assert (self.stencil._length_ % 2) == 1,'stencil must be odd sized'
 
+    
+    @setup
     def initialize_kernel(self,input_array,*args, **kwargs):
         assert len(self.inputs) == 1,'Laplacian Only For Vectors'
-        self.kernel = create_Laplacian_kernel(self.input_dtype,input_array.shape,self.stencil,self.float_dtype)
+        self.kernel = create_Laplacian_kernel(self.input_dtype,input_array.shape,self.stencil)
         self.kernel_dim = self.get_ghost_shape(input_array.shape,self.stencil)
     
-    def forward(self, input_array,alpha = 1):
-        
+    
+    def forward(self, input_array,alpha = 1,*args,**kwargs):    
         wp.launch(self.kernel,dim = self.kernel_dim,inputs = [
             input_array,
             alpha,   
         ],
         outputs= [self.output_array])
         return self.output_array
+    
 
 
-
-
-def create_stencil_op(input_vector:vector,stencil:vector,float_dtype):
+def create_stencil_op(input_vector:vector,stencil:vector):
     length = stencil._length_
     assert (length % 2) == 1,'stencil must be odd sized'
     num_ghost_cells = (length -1)//2
     
-
     @wp.func
     def stencil_op(current_values:wp.array3d(dtype=input_vector),
                    index:wp.vec3i,
-                   stencil:stencil,
+                   stencil:type(stencil),
                    axis:int):
         
         value = input_vector()
@@ -59,7 +60,7 @@ def create_stencil_op(input_vector:vector,stencil:vector,float_dtype):
     return stencil_op
 
 
-def create_Laplacian_kernel(input_vector,grid_shape,stencil,float_dtype):
+def create_Laplacian_kernel(input_vector,grid_shape,stencil):
     '''
     We need to ensure num_inputs == num_outputs
     '''
@@ -75,13 +76,13 @@ def create_Laplacian_kernel(input_vector,grid_shape,stencil,float_dtype):
     assert (length % 2) == 1,'stencil must be odd sized'
     num_ghost_cells = (length -1)//2
     
-    stencil_op = create_stencil_op(input_vector,stencil,float_dtype)
+    stencil_op = create_stencil_op(input_vector,stencil)
     axes_shift = wp.vec3i([num_ghost_cells if x > 1 else 0 for x in grid_shape])
     
     @wp.kernel
     def laplacian_kernel(
                         current_values:wp.array3d(dtype = input_vector),
-                        alpha:float_dtype,
+                        alpha:input_vector._wp_scalar_type,
                         new_values:wp.array3d(dtype = input_vector),
                         ):
         
