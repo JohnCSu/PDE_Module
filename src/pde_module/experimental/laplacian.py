@@ -43,7 +43,7 @@ def create_stencil_op(input_vector:vector,stencil:vector):
     num_ghost_cells = (length -1)//2
     
     @wp.func
-    def stencil_op(current_values:wp.array3d(dtype=input_vector),
+    def stencil_op(input_values:wp.array3d(dtype=input_vector),
                    index:wp.vec3i,
                    stencil:type(stencil),
                    axis:int):
@@ -53,7 +53,7 @@ def create_stencil_op(input_vector:vector,stencil:vector):
             shift = i - num_ghost_cells
             stencil_index = index
             stencil_index[axis] = index[axis] + shift
-            value += current_values[stencil_index[0],stencil_index[1],stencil_index[2]]*stencil[i]
+            value += input_values[stencil_index[0],stencil_index[1],stencil_index[2]]*stencil[i]
 
         return value
             
@@ -81,9 +81,9 @@ def create_Laplacian_kernel(input_vector,grid_shape,stencil):
     
     @wp.kernel
     def laplacian_kernel(
-                        current_values:wp.array3d(dtype = input_vector),
-                        alpha:input_vector._wp_scalar_type,
-                        new_values:wp.array3d(dtype = input_vector),
+                        input_values:wp.array3d(dtype = input_vector),
+                        alpha:input_vector._wp_scalar_type_,
+                        output_values:wp.array3d(dtype = input_vector),
                         ):
         
         i,j,k = wp.tid() # Lets only do internal grid points
@@ -94,9 +94,9 @@ def create_Laplacian_kernel(input_vector,grid_shape,stencil):
         
         laplace = input_vector() # Vector same length as input array vec
         for i in range(wp.static(len(d))):
-            laplace += stencil_op(current_values,index,stencil,axes[i])    
+            laplace += stencil_op(input_values,index,stencil,axes[i])    
         
-        new_values[index[0],index[1],index[2]] = alpha*laplace
+        output_values[index[0],index[1],index[2]] = alpha*laplace
         
     return laplacian_kernel
         

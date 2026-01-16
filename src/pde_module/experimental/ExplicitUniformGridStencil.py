@@ -3,25 +3,31 @@ import warp as wp
 from warp.types import vector,matrix
 from .utils import *
 from .hooks import *
+from collections.abc import Iterable
 
 class ExplicitUniformGridStencil(Stencil):
     '''
-    Stencil Class with useful function for ops on uniform grids
+    Class For Stencil on Uniform Grids for AoS grids
     '''
-    def __init__(self, inputs:int|list[int],outputs:int|list[int],dx:float,float_dtype):
+    def __init__(self, inputs:int|list[int],outputs:int|list[int],dx:float,float_dtype:wp.float32|wp.float64 = wp.float32):
         self.dx = float_dtype(dx)
         self._inputs = tuplify(inputs)
         self._outputs = tuplify(outputs)
-        input_dtype = self._get_dtype_from_shape(inputs)
-        output_dtype = self._get_dtype_from_shape(outputs)
+        input_dtype = self._get_dtype_from_shape(inputs,float_dtype)
+        output_dtype = self._get_dtype_from_shape(outputs,float_dtype)
         super().__init__(input_dtype,output_dtype,float_dtype)
         
     @staticmethod
     def _get_dtype_from_shape(shape:tuple[int],float_dtype):
         
-        assert all([isinstance(x,int) for x in shape]), 'contents in input/output must be int only'
+        if isinstance(shape,Iterable):
+            assert all([isinstance(x,int) for x in shape]), 'contents in input/output must be int only'
+        else:
+            assert isinstance(shape,int)
+            shape = tuplify(shape)
+            
         
-        if len(shape == 1):
+        if len(shape) == 1:
             return vector(length = shape[0],dtype = float_dtype)
         else:
             return matrix(shape = shape, dtype = float_dtype)

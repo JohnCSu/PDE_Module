@@ -172,7 +172,6 @@ class Grid:
             output = np.expand_dims(output,axis = (0,-1)) # We add a batch + vector output shape
         elif len(output.shape) == len(shape_with_ghost) + 1: # WE have a vector output
             output = np.expand_dims(output,axis = (0,)) # We add a batch dim only
-        
         else:
             raise NotImplementedError(f'function should only output either scalar or vector output across the grid shape')
         

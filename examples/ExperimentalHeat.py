@@ -4,6 +4,7 @@ import warp as wp
 
 from pde_module.experimental.grid import Grid
 from pde_module.experimental.laplacian import Laplacian
+from pde_module.experimental.time_integrators import ForwardEuler
 
 wp.init()
 wp.config.mode = "debug"
@@ -14,13 +15,23 @@ if __name__ == '__main__':
     dx = L/(n-1)
     # x,y = np.linspace(0,1,n),np.linspace(0,1,n)
     grid = Grid(dx = 1/(n-1),num_points=(n,n,1),origin= (0.,0.,0.))
-    lapl = Laplacian(1,grid.dx)
+    
     
     u = grid.create_node_field(1,1)
     
+    
+    
+    lapl = Laplacian(1,grid.dx)
     lapl.setup(u)
     
-    lapl(u)
+    euler_step = ForwardEuler(u.dtype)
+    
+    
+    stencil =lapl(u)
+    u_next = euler_step(u,stencil,0.1)
+    
+    
+    
     # IC = lambda x,y,z: (np.sin(np.pi*x)*np.sin(np.pi*y))
     # initial_value =grid.initial_condition(IC)
     
