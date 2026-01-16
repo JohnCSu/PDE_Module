@@ -216,6 +216,46 @@ class Grid:
     
     
     def initial_condition(self,grid_type,func,ghost_cells = None,array_type = 'warp',**kwargs):
+        '''
+        Use coordinates (x,y,z) generated from meshgrid and user specified function to generate initial conditions
+        
+        Args:
+            grid_type ({'cell','node'}, str) :
+                type of grid to create field from
+            func (Callable[x,y,z]) :
+                function that takes in a meshgrid output and outputs the initial condition. The first 3 axes
+                should match the grid shape with the trailing axes used to determine the dtype of the field
+            ghost_cells (None | int,optional) :
+                add ghost cells to grid. If None will use the grid's internal ghost_cells property
+
+                Default is None
+            array_type ({'warp','numpy'}, optional) :
+                output array type of either warp or numpy
+            **kwargs (optional) :
+                Any keyword arguments to pass to func
+
+        Returns:
+            array (warp.array | numpy.array) :
+                - if warp array, then the dtype of array is defined from num_fields and has shape of grid
+                - if numpy array, then first 3 axes are the grid shape and trailing axes define the shape of structure
+    
+        Example:
+            ```python
+                from matplotlib import pyplot as plt
+                
+                dx = 0.1 
+                grid = Grid(dx,(11,1,1),ghost_cells= 1)
+                
+                meshgrid = grid.create_grid('node') # Creates a list of (11,1,1) arrays
+                f = lambda x,y,z: (x**2)[:,np.newaxis] # Output is (*grid_shape,1) i.e. (11,1,1)
+                
+                IC = grid.initial_condition('node',f) # This is same as calling grid.create_grid and then f(*meshgrid)
+                y = IC.numpy().squeeze() 
+                
+                plt.plot(meshgrid[0].squeeze(),y)
+                plt.show()
+            ```
+        '''
         grid = self.create_grid(grid_type,ghost_cells)
         output = func(*grid,**kwargs)
         
@@ -247,7 +287,7 @@ if __name__ == '__main__':
     grid = Grid(dx,(11,1,1),ghost_cells= 1)
 
     
-    meshgrid = grid.create_grid('cell')
+    meshgrid = grid.create_grid('node')
     
     f = lambda x,y,z: (x**2)[:,np.newaxis]
     
