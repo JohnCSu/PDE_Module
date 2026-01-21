@@ -21,7 +21,7 @@ class ForwardEuler(Stencil):
     def forward(self,input_array,stencil_values,dt):
         assert input_array.shape == stencil_values.shape == self.output_array.shape
         wp.launch(kernel=self.kernel,dim = input_array.shape,inputs = [input_array,stencil_values,dt], outputs = [self.output_array])
-
+        return self.output_array
 
 def create_forward_euler(array_dtype,ndim,float_dtype):
     assert ndim <= 4 ,'Max numer of ndim for warp arrays is 4'
