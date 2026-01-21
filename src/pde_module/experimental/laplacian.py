@@ -19,15 +19,16 @@ class Laplacian(ExplicitUniformGridStencil):
             raise ValueError('Custom stencil not implemented yet')        
         assert (self.stencil._length_ % 2) == 1,'stencil must be odd sized'
 
+        self.ghost_cells = (self.stencil._length_ -1)// 2
     
     @setup
     def initialize_kernel(self,input_array,*args, **kwargs):
         assert len(self.inputs) == 1,'Laplacian Only For Vectors'
         self.kernel = create_Laplacian_kernel(self.input_dtype,input_array.shape,self.stencil)
-        self.kernel_dim = self.get_ghost_shape(input_array.shape,self.stencil)
+        self.kernel_dim = self.field_shape_with_no_ghost_cells(input_array.shape,self.ghost_cells)
     
     
-    def forward(self, input_array,alpha = 1,*args,**kwargs):    
+    def forward(self, input_array,alpha = 1.,*args,**kwargs):    
         wp.launch(self.kernel,dim = self.kernel_dim,inputs = [
             input_array,
             alpha,   
