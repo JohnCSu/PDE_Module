@@ -13,10 +13,49 @@ class ExplicitUniformGridStencil(Stencil):
         self.dx = float_dtype(dx)
         self._inputs = tuplify(inputs)
         self._outputs = tuplify(outputs)
-        input_dtype = self._get_dtype_from_shape(inputs,float_dtype)
-        output_dtype = self._get_dtype_from_shape(outputs,float_dtype)
+        input_dtype = self._get_dtype_from_shape(self.inputs,float_dtype)
+        output_dtype = self._get_dtype_from_shape(self.outputs,float_dtype)
         super().__init__(input_dtype,output_dtype,float_dtype)
         
+    
+    
+    @property
+    def inputs(self) -> tuple[int]:
+        assert 1 <= len(self._outputs) <= 2, 'AoS stencils input/output can be either vec (length 1) or matrix (length 2) check input and output pass'  
+        return self._inputs
+    @property
+    def outputs(self) -> tuple[int]:
+        assert 1 <= len(self._outputs) <= 2, 'AoS stencils input/output can be either vec (length 1) or matrix (length 2) check input and output pass'  
+        return self._outputs
+
+    @property
+    def input_dtype_shape(self):
+        '''
+        Shape of input dtype returned as a tuple
+        '''
+        return self.get_shape_from_dtype(self.input_dtype)
+    
+    @property
+    def output_dtype_shape(self):
+        '''
+        Shape of output dtype returned as a tuple
+        '''
+        return self.get_shape_from_dtype(self.output_dtype)
+    
+    @property
+    def output_scalar_type(self):
+        '''
+        warp scalar dtype (e.g. float32) of input dtype
+        '''
+        return self.output_dtype._wp_scalar_type_
+    
+    @property
+    def input_scalar_type(self):
+        '''
+        warp scalar dtype (e.g. float32) of output dtype
+        '''
+        return self.output_dtype._wp_scalar_type_
+    
     @staticmethod
     def _get_dtype_from_shape(shape:tuple[int],float_dtype):
         
@@ -31,23 +70,43 @@ class ExplicitUniformGridStencil(Stencil):
             return vector(length = shape[0],dtype = float_dtype)
         else:
             return matrix(shape = shape, dtype = float_dtype)
+        
+        
+    @staticmethod
+    def get_shape_from_dtype(dtype):
+        '''
+        Get the shape of the dtype as a tuple based on if dtype is vec or matrix
+        '''
+        if wp.types.type_is_vector(dtype):
+            return (dtype._length_,)
+        elif wp.types.type_is_matrix(dtype):
+            return dtype._shape_
+        
+        else:
+            raise TypeError('Dtypes supported are warp vector and matrix only')
     
-    @property
-    def inputs(self) -> tuple[int]:
-        assert 1 <= len(self._outputs) <= 2, 'AoS stencils input/output can be either vec (length 1) or matrix (length 2) check input and output pass'  
-        return self._inputs
-    @property
-    def outputs(self) -> tuple[int]:
-        assert 1 <= len(self._outputs) <= 2, 'AoS stencils input/output can be either vec (length 1) or matrix (length 2) check input and output pass'  
-        return self._outputs
+
     
     @staticmethod
-    def get_ghost_shape(input_shape,stencil):
+    def get_ghost_shape_from_stencil(grid_shape,stencil):
         length = stencil._length_
         assert (length % 2) == 1,'stencil must be odd sized'
         num_ghost_cells = (length -1)
-        shape = tuple(s-num_ghost_cells for s in input_shape if s > 1)
+        shape = tuple(s-num_ghost_cells for s in grid_shape if s > 1)
         return shape
+    
+    
+    @staticmethod
+    def field_shape_with_no_ghost_cells(grid_shape,ghost_cells):
+        '''
+        Given ghost_cells, calculate field shape with no ghost cells
+        '''
+        return tuple(axis - ghost_cells*2 if axis > 1 else axis for axis in (grid_shape))
+    
+    @staticmethod
+    def get_ghost_shape(grid_shape,ghost_cells):
+        return tuple(axis + ghost_cells*2 if axis > 1 else axis for axis in (grid_shape))
+    
     
     @setup(order = -1)
     def initialize_array(self,input_array,*args,**kwargs):

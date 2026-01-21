@@ -40,6 +40,10 @@ class Stencil:
     def input_dtype(self) ->wp_Matrix | wp_Vector :
         return self._iniput_dtype
     
+    
+    
+    
+    
     def create_output_array(self,input_array:wp.array):
         shape = input_array.shape
         return wp.empty(shape = shape, dtype= self.output_dtype)
