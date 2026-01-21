@@ -9,10 +9,11 @@ class ExplicitUniformGridStencil(Stencil):
     '''
     Class For Stencil on Uniform Grids for AoS grids
     '''
-    def __init__(self, inputs:int|list[int],outputs:int|list[int],dx:float,float_dtype:wp.float32|wp.float64 = wp.float32):
+    def __init__(self, inputs:int|list[int],outputs:int|list[int],dx:float,ghost_cells = 0,float_dtype:wp.float32|wp.float64 = wp.float32):
         self.dx = float_dtype(dx)
         self._inputs = tuplify(inputs)
         self._outputs = tuplify(outputs)
+        self.ghost_cells = ghost_cells
         input_dtype = self._get_dtype_from_shape(self.inputs,float_dtype)
         output_dtype = self._get_dtype_from_shape(self.outputs,float_dtype)
         super().__init__(input_dtype,output_dtype,float_dtype)
