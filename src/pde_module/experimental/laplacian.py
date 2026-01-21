@@ -4,6 +4,7 @@ import warp as wp
 from warp.types import vector,matrix
 # from .types import *
 from .hooks import *
+from pde_module.experimental.stencil_utils import create_stencil_op,eligible_dims_and_shift
 
 class Laplacian(ExplicitUniformGridStencil):
     '''
@@ -11,20 +12,21 @@ class Laplacian(ExplicitUniformGridStencil):
     '''
     def __init__(self, inputs:int,dx:float,stencil = None, float_dtype=wp.float32):
         assert isinstance(inputs,int)
-        super().__init__(inputs, inputs,dx,float_dtype)
         
         if stencil is None:
-            self.stencil = wp.types.vector(3,dtype = self.float_dtype)([1./dx**2,-2./dx**2,1/dx**2])
+            self.stencil = wp.types.vector(3,dtype = float_dtype)([1./dx**2,-2./dx**2,1/dx**2])
         else:
             raise ValueError('Custom stencil not implemented yet')        
         assert (self.stencil._length_ % 2) == 1,'stencil must be odd sized'
 
-        self.ghost_cells = (self.stencil._length_ -1)// 2
-    
+        ghost_cells = (self.stencil._length_ -1)// 2
+
+        super().__init__(inputs, inputs,dx,ghost_cells,float_dtype=float_dtype)
+        
     @setup
     def initialize_kernel(self,input_array,*args, **kwargs):
         assert len(self.inputs) == 1,'Laplacian Only For Vectors'
-        self.kernel = create_Laplacian_kernel(self.input_dtype,input_array.shape,self.stencil)
+        self.kernel = create_Laplacian_kernel(self.input_dtype,input_array.shape,self.stencil,self.ghost_cells)
         self.kernel_dim = self.field_shape_with_no_ghost_cells(input_array.shape,self.ghost_cells)
     
     
@@ -38,30 +40,7 @@ class Laplacian(ExplicitUniformGridStencil):
     
 
 
-def create_stencil_op(input_vector:vector,stencil:vector):
-    length = stencil._length_
-    assert (length % 2) == 1,'stencil must be odd sized'
-    num_ghost_cells = (length -1)//2
-    
-    @wp.func
-    def stencil_op(input_values:wp.array3d(dtype=input_vector),
-                   index:wp.vec3i,
-                   stencil:type(stencil),
-                   axis:int):
-        
-        value = input_vector()
-        for i in range(wp.static(length)):
-            shift = i - num_ghost_cells
-            stencil_index = index
-            stencil_index[axis] = index[axis] + shift
-            value += input_values[stencil_index[0],stencil_index[1],stencil_index[2]]*stencil[i]
-
-        return value
-            
-    return stencil_op
-
-
-def create_Laplacian_kernel(input_vector,grid_shape,stencil):
+def create_Laplacian_kernel(input_vector,grid_shape,stencil,ghost_cells):
     '''
     We need to ensure num_inputs == num_outputs
     '''
@@ -69,16 +48,8 @@ def create_Laplacian_kernel(input_vector,grid_shape,stencil):
     
     assert wp.types.type_is_vector(input_vector), 'Input type must be of vector'
     
-    d = [i for i,x in enumerate(grid_shape) if x > 1 ] # Store dimensions that are eligible
-    
-    axes = wp.types.vector(length=len(d),dtype = int)(d)
-    
-    length = stencil._length_
-    assert (length % 2) == 1,'stencil must be odd sized'
-    num_ghost_cells = (length -1)//2
-    
-    stencil_op = create_stencil_op(input_vector,stencil)
-    axes_shift = wp.vec3i([num_ghost_cells if x > 1 else 0 for x in grid_shape])
+    stencil_op = create_stencil_op(input_vector,stencil,ghost_cells)
+    dims,dims_shift = eligible_dims_and_shift(grid_shape,ghost_cells) 
     
     @wp.kernel
     def laplacian_kernel(
@@ -91,13 +62,15 @@ def create_Laplacian_kernel(input_vector,grid_shape,stencil):
         
         # Step 1. Shift to adjust for ghost cells
         index = wp.vec3i(i,j,k) 
-        index += axes_shift
+        index += dims_shift
         
         laplace = input_vector() # Vector same length as input array vec
-        for i in range(wp.static(len(d))):
-            laplace += stencil_op(input_values,index,stencil,axes[i])    
+        for i in range(wp.static(len(dims))):
+            laplace += stencil_op(input_values,index,stencil,dims[i])    
         
-        output_values[index[0],index[1],index[2]] = alpha*laplace
+        laplace *= alpha
+        
+        output_values[index[0],index[1],index[2]] = laplace
         
     return laplacian_kernel
         
