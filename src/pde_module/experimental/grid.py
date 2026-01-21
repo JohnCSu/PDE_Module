@@ -93,7 +93,7 @@ class Grid:
         return self.cell_centroid_coordinate_vectors if grid_type == 'cell' else self.nodal_coordinates_vectors
     
     
-    def create_grid(self,grid_type:str,ghost_cells = None,stack_axis = None,indexing = 'ij'):
+    def create_meshgrid(self,grid_type:str,ghost_cells = None,stack_axis = None,indexing = 'ij'):
         '''
         Create a meshgrid out of the coordinate vectors of the grid depending on grid type
         
@@ -246,17 +246,17 @@ class Grid:
                 dx = 0.1 
                 grid = Grid(dx,(11,1,1),ghost_cells= 1)
                 
-                meshgrid = grid.create_grid('node') # Creates a list of (11,1,1) arrays
+                meshgrid = grid.create_meshgrid('node') # Creates a list of (11,1,1) arrays
                 f = lambda x,y,z: (x**2)[:,np.newaxis] # Output is (*grid_shape,1) i.e. (11,1,1)
                 
-                IC = grid.initial_condition('node',f) # This is same as calling grid.create_grid and then f(*meshgrid)
+                IC = grid.initial_condition('node',f) # This is same as calling grid.create_meshgrid and then f(*meshgrid)
                 y = IC.numpy().squeeze() 
                 
                 plt.plot(meshgrid[0].squeeze(),y)
                 plt.show()
             ```
         '''
-        grid = self.create_grid(grid_type,ghost_cells)
+        grid = self.create_meshgrid(grid_type,ghost_cells)
         output = func(*grid,**kwargs)
         
         grid_shape = self.cell_grid_shape if grid_type == 'cell' else self.node_grid_shape
@@ -287,7 +287,7 @@ if __name__ == '__main__':
     grid = Grid(dx,(11,1,1),ghost_cells= 1)
 
     
-    meshgrid = grid.create_grid('node')
+    meshgrid = grid.create_meshgrid('node')
     
     f = lambda x,y,z: (x**2)[:,np.newaxis]
     
