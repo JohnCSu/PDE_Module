@@ -28,7 +28,7 @@ class Stencil:
     float_dtype: wp.float32 | wp.float64 
     def __init__(self,input_dtype,output_dtype,float_dtype):        
         self.initial = True
-        self._iniput_dtype = input_dtype
+        self._input_dtype = input_dtype
         self._output_dtype = output_dtype
         self.float_dtype = float_dtype
     
@@ -38,7 +38,7 @@ class Stencil:
     
     @property
     def input_dtype(self) ->wp_Matrix | wp_Vector :
-        return self._iniput_dtype
+        return self._input_dtype
     
     
     
