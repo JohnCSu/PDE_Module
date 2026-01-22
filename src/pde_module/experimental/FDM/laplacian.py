@@ -1,9 +1,9 @@
 # from .stencil import Stencil
-from .ExplicitUniformGridStencil import ExplicitUniformGridStencil
+from ..ExplicitUniformGridStencil import ExplicitUniformGridStencil
 import warp as wp
 from warp.types import vector,matrix
 # from .types import *
-from .hooks import *
+from ..hooks import *
 from pde_module.experimental.stencil_utils import create_stencil_op,eligible_dims_and_shift
 
 class Laplacian(ExplicitUniformGridStencil):
