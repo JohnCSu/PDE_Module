@@ -57,6 +57,12 @@ class ExplicitUniformGridStencil(Stencil):
         '''
         return self.output_dtype._wp_scalar_type_
     
+    
+    @staticmethod
+    def calculate_dimension_from_field_shape(shape):
+        return sum([1 for s in shape if s > 1])
+    
+    
     @staticmethod
     def _get_dtype_from_shape(shape:tuple[int],float_dtype):
         
