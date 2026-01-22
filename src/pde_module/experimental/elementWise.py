@@ -5,18 +5,19 @@ from .Stencil.hooks import *
 from pde_module.experimental.stencil_utils import create_stencil_op,eligible_dims_and_shift
 
 
-
 class ElementWise(Stencil):
     '''
-    Base_class for Element wise operations
+    Base_class for Element wise operations between two arrays of same size
     '''
     def __init__(self,element_op,output_dtype,float_dtype = wp.float32):
         self.element_op = element_op
         self._output_dtype
         self.float_dtype = float_dtype
         
+        
     @setup(order = 1)
     def initialize_kernel(self,array_A,array_B,*args, **kwargs):
+        assert array_A.shape == array_B.shape, 'input arrays must be the same!'
         super().__init__(array_A.dtype,self._output_dtype,0,0,self.float_dtype)
         self.array_B_dtype =array_B.dtype
         
