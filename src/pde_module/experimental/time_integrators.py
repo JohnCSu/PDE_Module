@@ -1,8 +1,8 @@
 import warp as wp
-from .stencil import Stencil
+from .Stencil.stencil import Stencil
 import warp as wp
 from warp.types import vector,matrix
-from .hooks import *
+from .Stencil.hooks import *
 '''
 Modules for Time Integration Schemes. These Stencils should be grid and float type agnostic 
 '''
