@@ -16,17 +16,16 @@ class ForwardEuler(Stencil):
         self.output_array = super().create_output_array(input_array)
         ndim = len(input_array.shape)
         self.kernel = create_forward_euler(self.input_dtype,ndim,self.float_dtype)    
-    
+        self.size = input_array.size
     
     def forward(self,input_array,stencil_values,dt):
         assert input_array.shape == stencil_values.shape == self.output_array.shape
-        wp.launch(kernel=self.kernel,dim = input_array.shape,inputs = [input_array,stencil_values,dt], outputs = [self.output_array])
+    
+        wp.launch(kernel=self.kernel,dim = self.size,inputs = [input_array.flatten(),stencil_values.flatten(),dt], outputs = [self.output_array.flatten()])
         return self.output_array
 
 def create_forward_euler(array_dtype,ndim,float_dtype):
-    assert ndim <= 4 ,'Max numer of ndim for warp arrays is 4'
-    array_type = wp.array(ndim = ndim,dtype = array_dtype)
-    
+    array_type = wp.array(dtype = array_dtype)
     @wp.kernel
     def forward_euler_kernel(
                         current_values:array_type,
@@ -34,17 +33,8 @@ def create_forward_euler(array_dtype,ndim,float_dtype):
                         dt:float_dtype,
                         new_values:array_type,
     ):
-        if wp.static(ndim == 1):
-            tid = wp.tid() 
-            new_values[tid] = current_values[tid] + dt*stencil_values[tid]
-        elif wp.static(ndim == 2):
-            x,y = wp.tid()
-            new_values[x,y] = current_values[x,y] + dt*stencil_values[x,y]
-        elif wp.static(ndim == 3):
-            x,y,z = wp.tid()
-            new_values[x,y,z] = current_values[x,y,z] + dt*stencil_values[x,y,z]
-        else: 
-            x,y,z,w = wp.tid()
-            new_values[x,y,z,w] = current_values[x,y,z,w] + dt*stencil_values[x,y,z,w]
-        
+    
+        tid = wp.tid() 
+        new_values[tid] = current_values[tid] + dt*stencil_values[tid]
+    
     return forward_euler_kernel
