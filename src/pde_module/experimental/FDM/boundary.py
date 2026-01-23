@@ -148,8 +148,12 @@ class GridBoundary(ExplicitUniformGridStencil):
     def initialize_kernel(self, input_array, *args, **kwargs):
         self.kernel = create_boundary_kernel(self.input_dtype,self.ghost_cells,self.dx)
     
-    def forward(self, input_array, *args, **kwargs):
+    @before_forward
+    def copy_array(self,input_array,*args,**kwargs):
         wp.copy(self.output_array,input_array)
+        
+    def forward(self, input_array, *args, **kwargs):
+        # wp.copy(self.output_array,input_array)
         wp.launch(
             kernel=self.kernel,
             dim = (len(self.boundary_indices),*self.input_dtype_shape),
@@ -165,6 +169,7 @@ class GridBoundary(ExplicitUniformGridStencil):
             ]
         )
         return self.output_array
+    
 def create_boundary_kernel(input_dtype,ghost_cells,dx):
     dx = dx
     DIRICHLET = wp.int8(0)
