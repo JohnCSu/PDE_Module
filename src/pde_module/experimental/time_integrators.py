@@ -11,6 +11,7 @@ class ForwardEuler(Stencil):
     def __init__(self, input_dtype, float_dtype = wp.float32):
         super().__init__(input_dtype,input_dtype, float_dtype)
     
+    
     @setup
     def initialize_kernel(self,input_array,*args,**kwargs):
         self.output_array = super().create_output_array(input_array)

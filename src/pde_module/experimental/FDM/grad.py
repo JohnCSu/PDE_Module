@@ -7,7 +7,10 @@ from pde_module.experimental.stencil_utils import create_stencil_op,eligible_dim
 
 class Grad(ExplicitUniformGridStencil):
     '''
-    Calculate gradient of a scalar vector or the jacobian of a vector
+    Calculate gradient of a scalar vector or the jacobian of a vector. setting force_matrix = True will always return a matrix dtype
+    
+    
+    
     '''
     def __init__(self,inputs,field_shape,dx:float,ghost_cells,force_matrix:bool = False, float_dtype=wp.float32):
         
@@ -24,7 +27,7 @@ class Grad(ExplicitUniformGridStencil):
         
         assert dimension <= 3
         
-        super().__init__(1,output_shape,dx,ghost_cells,float_dtype)
+        super().__init__(inputs,output_shape,dx,ghost_cells,float_dtype)
         
     @setup
     def initialize_kernel(self,input_array,*args, **kwargs):
@@ -46,7 +49,7 @@ class Grad(ExplicitUniformGridStencil):
 def create_Grad_kernel(input_vector:vector,output_dtype,grid_shape,stencil,ghost_cells):
     assert type_is_vector(input_vector)
     
-    output_type = 'vector' if hasattr(output_dtype,'_length_') else 'matrix'
+    output_dtype_is_vector =  type_is_vector(output_dtype)
     assert type_is_vector(output_dtype) or type_is_matrix(output_dtype)
     
     
@@ -68,7 +71,7 @@ def create_Grad_kernel(input_vector:vector,output_dtype,grid_shape,stencil,ghost
         grad = output_dtype()
         
         for i in range(wp.static(len(dims))):
-            if wp.static(output_type == 'vector'):
+            if wp.static(output_dtype_is_vector):
                 grad[i] = stencil_op(scalar_array,index,stencil,dims[i])[0] # Scalar value
             else:
                 grad[:,i] = stencil_op(scalar_array,index,stencil,dims[i]) # Vector of derivatives of all outputs wrt to some axis

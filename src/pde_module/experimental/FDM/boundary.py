@@ -1,15 +1,15 @@
 from .ExplicitUniformGridStencil import ExplicitUniformGridStencil
 import warp as wp
-from warp.types import vector,matrix
+from warp.types import vector,matrix,type_is_vector
 # from .types import *
 from ..Stencil.hooks import *
 import numpy as np
 
 class GridBoundary(ExplicitUniformGridStencil):
-    def __init__(self,field,ghost_cells:int,dx):
-        
+    def __init__(self,field,dx,ghost_cells:int):
         inputs = self.get_shape_from_dtype(field.dtype)
         super().__init__(inputs ,inputs, dx, field.dtype._wp_scalar_type_)
+        assert type_is_vector(self.input_dtype), 'input must be vector type'
         assert type(ghost_cells) is int and ghost_cells > 0
         self.ghost_cells = ghost_cells
         
@@ -90,27 +90,40 @@ class GridBoundary(ExplicitUniformGridStencil):
                 index = self.groups[key]
                 self.boundary_interior[index,i] = sign
         
+    
+    
+    def _check_output_ids(self,output_ids:int|np.ndarray|list|tuple|None):
         
+        if output_ids is None:
+            return slice(None)
+    
+        if isinstance(output_ids,int):
+            assert type_is_vector(self.input_dtype)
+            assert 0 <= output_ids < self.inputs[0]
+            return output_ids
+            
+        if isinstance(output_ids,(list,tuple,np.ndarray)):
+            output_ids = np.array(output_ids,dtype = np.int32)
+            assert np.all( 0 <= output_ids < self.inputs)
+            return output_ids
+        
+        raise TypeError(f'Valid Types are: int|np.ndarray|list|tuple|None got {type(output_ids)} instead')
     
     def set_BC(self,face_ids:str|int|np.ndarray|list|tuple,value:float,boundary_type:int,outputs_ids:int|np.ndarray|list|tuple|None):
+        '''
+        Key:
+            0 -> Dirichlet
+            1 -> Von Neumann
+        '''
+        
         if isinstance(face_ids,str):
             assert face_ids in self.groups.keys()
             face_ids = self.groups[face_ids]
             
         assert isinstance(face_ids,(np.ndarray,list,tuple,int))
-        
-        assert isinstance(outputs_ids,(int,list,tuple,np.ndarray)) or outputs_ids is None
-        
-        if isinstance(outputs_ids,int):
-            assert 0 <= outputs_ids < self.num_inputs
-        elif isinstance(outputs_ids,(list,tuple,np.ndarray)):
-            output_ids = np.array(output_ids,dtype = np.int32)
-            assert np.all( 0 <= output_ids < self.num_inputs)
-        
-        if outputs_ids is None:
-            outputs_ids = slice(None)
-        
         assert isinstance(value,float), 'Value must be type float'
+        
+        outputs_ids = self._check_output_ids(outputs_ids)
         
         self.boundary_type[face_ids,outputs_ids] = boundary_type # For Dirichlet
         self.boundary_value[face_ids,outputs_ids] = value
@@ -156,6 +169,8 @@ def create_boundary_kernel(input_dtype,ghost_cells,dx):
     dx = dx
     DIRICHLET = wp.int8(0)
     VON_NEUMANN = wp.int8(1)
+    
+    float_type = input_dtype._wp_scalar_type_
     @wp.kernel
     def boundary_kernel(
         current_values:wp.array3d(dtype = input_dtype),
@@ -174,22 +189,22 @@ def create_boundary_kernel(input_dtype,ghost_cells,dx):
         z = nodeID[2]
         
         # wp.printf('%d,%d,%d,   %d,%d,%d,\n',x,y,z, nodeID[0],nodeID[1],nodeID[2])
-        interior_vec = boundary_interior[i] 
+        interior_vec = boundary_interior[i]         
+        #Update Ghost value
+        for axis in range(3):
+            if interior_vec[axis] != 0:                    
+                inc_vec = wp.vec3i()
+                inc_vec[axis] = interior_vec[axis]
+                ghostID = nodeID - inc_vec
+                adjID = nodeID + inc_vec
+                val =boundary_value[i][var]
+                if boundary_type[i][var] == DIRICHLET:
+                    new_values[x,y,z][var] =  val
+                    new_values[ghostID[0],ghostID[1],ghostID[2]][var] =  type(dx)(2.)*val - current_values[adjID[0],adjID[1],adjID[2]][var]
+                elif boundary_type[i][var] == VON_NEUMANN:
+                    new_values[ghostID[0],ghostID[1],ghostID[2]][var] = val - wp.sign(float_type(inc_vec[axis]))*current_values[adjID[0],adjID[1],adjID[2]][var]*dx
         
-        # new_values[x,y,z][0] = 1.
-        # boundary_type[i][var] = 1.
-        
-        if boundary_type[i][var] == DIRICHLET:
-            new_values[x,y,z][var] =  boundary_value[i][var]
-            
-            for j in range(3):
-                if interior_vec[j] != 0:                    
-                    inc_vec = wp.vec3i(0,0,0)
-                    inc_vec[j] = interior_vec[j]
-                    ghostID = nodeID - inc_vec
-                    adjID = nodeID + inc_vec
-                    new_values[ghostID[0],ghostID[1],ghostID[2]][var] =  type(dx)(2.)*boundary_value[i][var] - current_values[adjID[0],adjID[1],adjID[2]][var]
-                    
+
                     
             # for j in range(wp.static(ghost_cells)):
     return boundary_kernel
