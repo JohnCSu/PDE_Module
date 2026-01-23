@@ -3,19 +3,23 @@ import numpy as np
 import warp as wp
 from matplotlib import pyplot as plt
 from pde_module.experimental.grid import Grid
-from pde_module.experimental.laplacian import Laplacian
+from pde_module.experimental.FDM.laplacian import Laplacian
 from pde_module.experimental.time_integrators import ForwardEuler
-from pde_module.experimental.boundary import GridBoundary
+from pde_module.experimental.FDM.boundary import GridBoundary
+from pde_module.experimental.FDM.grad import Grad
+from pde_module.experimental.FDM.divergence import Divergence
+
 
 wp.init()
 # wp.config.mode = "debug"
 
 if __name__ == '__main__':
-    n = 41
+    n = 101
     L = 1
     dx = L/(n-1)
+    ghost_cells = 1
     # x,y = np.linspace(0,1,n),np.linspace(0,1,n)
-    grid = Grid(dx = 1/(n-1),num_points=(n,n,1),origin= (0.,0.,0.),ghost_cells=1)
+    grid = Grid(dx = 1/(n-1),num_points=(n,n,1),origin= (0.,0.,0.),ghost_cells=ghost_cells)
 
     # u = grid.create_node_field(1,1)
 
@@ -33,17 +37,31 @@ if __name__ == '__main__':
     dt = float(dx**2/(4*alpha))
     
     # Define Modules
-    BC = GridBoundary(u,1,dx)
+    BC = GridBoundary(u,dx,1)
     BC.dirichlet_BC('ALL',0.)
-    euler_step = ForwardEuler(u.dtype)  
-    lapl = Laplacian(1,grid.dx)
+    
+    
+    euler_step = ForwardEuler(u.dtype)
+    
+    grad = Grad(1,u.shape,dx,ghost_cells=ghost_cells)
+    div = Divergence('vector',u.shape,dx,ghost_cells)
+    lapl = Laplacian(1,dx,ghost_cells)
 
     lapl.setup(u)
+    # div.setup(u)
+    # grad.setup(u)
     BC.setup(u)
+    
+    
     t= 0
     for i in range(1000):
         u2 = BC(u)
-        stencil =lapl(u2,alpha)
+        # stencil =lapl(u2,alpha)
+        
+        g = grad(u)
+        assert g.dtype._length_ == 2
+        stencil = div(g,alpha)
+        
         u_next = euler_step(u2,stencil,dt)
         u = u_next
         t+= dt

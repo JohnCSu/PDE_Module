@@ -25,7 +25,7 @@ class Grid:
    
     @property
     def active_dimensions(self):
-        return tuple(i for i in range(3) if i > 1 in self.num_points)
+        return tuple(i for i in range(3) if self.num_points[i] > 1)
     
     @property
     def dimension(self):
@@ -282,7 +282,34 @@ class Grid:
         else:
             return output
         
+    
+    def get_plotting_for(self,field_type,field,ghost_cells =None):
+        '''
+        Get meshgrid and trim input field for plotting. Ensures that meshgrid and plot are same shape
+        '''
+        ghost_cells = self.ghost_cells if ghost_cells is None else ghost_cells
         
+        assert isinstance(ghost_cells,int) and ghost_cells >= 0 
+        assert field_type in self.grid_types
+        dims = self.active_dimensions
+        
+        meshgrid = self.create_meshgrid(field_type,0) # No Ghost cells for meshgrid!
+        meshgrid =  [m.squeeze() for m in meshgrid]
+        meshgrid = [meshgrid[i] for i in dims] # Get Active dimensions
+        
+        
+        field_plot = field.numpy().squeeze()
+        
+        if ghost_cells > 0:
+            trims = [slice(ghost_cells,-ghost_cells) for d in dims]    
+            field_plot = field_plot[*trims]
+        
+        
+        if meshgrid[0].shape != field_plot.shape[:len(dims)]:
+            raise ValueError(f'the field shape and meshgrid shape are not matching! Got {meshgrid[0].shape} and {field_plot.shape[:len(dims)]}' )
+        
+        return meshgrid,field_plot    
+    
 if __name__ == '__main__':
     dx = 0.1 
     grid = Grid(dx,(11,1,1),ghost_cells= 1)
