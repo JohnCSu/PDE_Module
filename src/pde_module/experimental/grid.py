@@ -22,13 +22,14 @@ class Grid:
     def face_volume(self):
         return self.dx**(self.dimension-1) 
     
+   
     @property
-    def is_dimension(self):
-        return (1 if p > 1 else 0 for p  in self.num_points )
+    def active_dimensions(self):
+        return tuple(i for i in range(3) if i > 1 in self.num_points)
     
     @property
     def dimension(self):
-        return sum(self.is_dimension)
+        return len(self.active_dimensions)
     
     @property
     def grid_types(self):
@@ -208,10 +209,10 @@ class Grid:
             return np.zeros(shape = grid_shape + num_fields,dtype=self.np_float_dtype)
             
     
-    def create_cell_field(self,num_fields:int |tuple[int],ghost_cells:int |tuple[int],array_type:str = 'warp',array_format:str = 'AoS'):
+    def create_cell_field(self,num_fields:int |tuple[int],ghost_cells:int |tuple[int]| None = None,array_type:str = 'warp',array_format:str = 'AoS'):
         return self.create_field('cell',num_fields,ghost_cells,array_type,array_format)
     
-    def create_node_field(self,num_fields:int |tuple[int],ghost_cells:int |tuple[int],array_type:str = 'warp',array_format:str = 'AoS'):
+    def create_node_field(self,num_fields:int |tuple[int],ghost_cells:int |tuple[int] | None = None,array_type:str = 'warp',array_format:str = 'AoS'):
         return self.create_field('node',num_fields,ghost_cells,array_type,array_format)
     
     
