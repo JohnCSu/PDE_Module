@@ -123,8 +123,4 @@ class ExplicitUniformGridStencil(Stencil):
     def initialize_kernel(self,input_array,*args,**kwargs):
         ...
     
-    @before_forward
-    def zero_array(self,*args,**kwargs):
-        self.output_array.zero_()
-        
         
