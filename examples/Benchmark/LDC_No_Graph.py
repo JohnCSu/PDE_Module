@@ -19,7 +19,7 @@ if __name__ == '__main__':
     ghost_cells = 1
     # x,y = np.linspace(0,1,n),np.linspace(0,1,n)
     grid = Grid(dx = 1/(n-1),num_points=(n,n,1),origin= (0.,0.,0.),ghost_cells=ghost_cells)
-
+    
     # Runtime params
     viscosity = 1/100
     beta = 0.3
@@ -53,11 +53,11 @@ if __name__ == '__main__':
 
     dp/dt +beta * div(u) = 0
     '''
-    # wp.set_mempool_release_threshold("cuda:0", 0.25)
+    
 
     
     # Inital Pass + Setup Of kernels
-    
+    wp.set_mempool_release_threshold("cuda:0", 0.25)
     u_fix = u_BC(u)
     u_diff = u_lapl(u_fix,viscosity)
     du = u_grad(u_fix)
@@ -73,35 +73,25 @@ if __name__ == '__main__':
     u,p = u_next,p_next
     t+= dt
     
-    with wp.ScopedCapture() as capture:   
-        u_fix = u_BC(u)
-        u_diff = u_lapl(u_fix,viscosity)
-        du = u_grad(u_fix)
-        u_incomp = u_div(u_fix,-beta)
-        
-        u_conv = du*u
-        
-        p_fix = p_BC(p)
-        dp = p_grad(p_fix,-1.)
-        
-        u_F = dp - u_conv + u_diff
-        
-        u_next = u_step(u_fix,u_F,dt)
-        p_next = p_step(p_fix,u_incomp,dt)
-        
-        u,p = u_next,p_next
-        
-        t+= dt
-        
-    with wp.ScopedTimer("LDC"):
-        for i in range(1,5001):
-            wp.capture_launch(capture.graph)
-            if i % 500 == 0:
-                print(f'Max u = {u.numpy().max()} at t = {t},iter = {i}')
+    with wp.ScopedTimer("LDC No Graph"):
+        for i in range(1,10001):
+            u_fix = u_BC(u)
+            u_diff = u_lapl(u_fix,viscosity)
+            du = u_grad(u_fix)
+            u_incomp = u_div(u_fix,-beta)
+            u_conv = du*u
+            p_fix = p_BC(p)
+            dp = p_grad(p_fix,-1.)
+            u_F = dp - u_conv + u_diff
+            u_next = u_step(u_fix,u_F,dt)
+            p_next = p_step(p_fix,u_incomp,dt)
+            u,p = u_next,p_next
+            t+= dt
+            if i % 2500 == 0:
+                print(f't = {t:.3E},iter = {i}')
             
-
-    # Trim Values
     
+    # Trim Values
     meshgrid,us = grid.get_plotting_for('node',u)
     u_plot = us[:,:,0]
     v_plot = us[:,:,1]
@@ -110,7 +100,28 @@ if __name__ == '__main__':
     plt.colorbar()
     plt.show()
     
+    import pandas as pd
+    v_benchmark = pd.read_csv(r'examples\v_velocity_results.csv',sep = ',')
+    u_benchmark = pd.read_csv(r'examples\u_velocity_results.txt',sep= '\t')
     
+    
+    x_05 = meshgrid[0][:,n//2]
+    v_05 = v_plot[:,n//2]
+    
+    
+    print(f"CFD max {v_05.max()}, Benchmark Max :{v_benchmark['100'].max()}")
+    plt.plot(v_benchmark['%x'],v_benchmark['100'],'o',label = 'Ghia et al')
+    plt.plot(x_05,v_05)
+    plt.show()
+    
+    y_05 = meshgrid[1][n//2,:]
+    u_05 = u_plot[n//2,:]
+    
+    
+    print(f"CFD max {u_05.max()}, Benchmark Max :{u_benchmark['100'].max()}")
+    plt.plot(u_benchmark['%y'],u_benchmark['100'],'o',label = 'Ghia et al')
+    plt.plot(y_05,u_05)
+    plt.show()
     # plot
     # def plot_2D_field(field,grid):
         
