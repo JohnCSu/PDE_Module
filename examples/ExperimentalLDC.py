@@ -5,7 +5,7 @@ from matplotlib import pyplot as plt
 from pde_module.experimental.grid import Grid
 from pde_module.experimental.FDM.laplacian import Laplacian
 from pde_module.experimental.time_integrators import ForwardEuler
-from pde_module.experimental.FDM.boundary import GridBoundary
+from pde_module.experimental.FDM.gridBoundary import GridBoundary
 from pde_module.experimental.FDM.grad import Grad
 from pde_module.experimental.FDM.divergence import Divergence
 
@@ -31,7 +31,7 @@ if __name__ == '__main__':
     u = grid.create_node_field(2)
     u_BC = GridBoundary(u,dx,ghost_cells)
     u_BC.dirichlet_BC('ALL',0.)
-    u_BC.dirichlet_BC('+Y',1.,0)
+    u_BC.dirichlet_BC('-X',1.,0)
     
     u_lapl = Laplacian(2,dx,ghost_cells)
     u_grad = Grad(2,u.shape,dx,ghost_cells=ghost_cells)

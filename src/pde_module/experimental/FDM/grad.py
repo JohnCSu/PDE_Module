@@ -9,8 +9,6 @@ class Grad(ExplicitUniformGridStencil):
     '''
     Calculate gradient of a scalar vector or the jacobian of a vector. setting force_matrix = True will always return a matrix dtype
     
-    
-    
     '''
     def __init__(self,inputs,field_shape,dx:float,ghost_cells,force_matrix:bool = False, float_dtype=wp.float32):
         
