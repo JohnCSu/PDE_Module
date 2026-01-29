@@ -74,6 +74,31 @@ class GridBoundary(Boundary):
                 self.boundary_interior[index,i] = sign
         
     
+    def no_slip(self,group:str|int|np.ndarray|list|tuple):
+        '''
+        If the input dtype matches the vector length, assumes it is a velocity vector
+        '''
+        assert self.inputs[0] == self.dimension, 'Valid only when input_dtype is vector with same length equal to dimension of field'
+        self.dirichlet_BC(group,0)
+    
+    def impermeable(self,group):
+        '''
+        for side walls set normal velocity to zero
+        '''
+        assert self.inputs[0] == self.dimension, 'Valid only when input_dtype is vector with same length equal to dimension of field'
+        
+        assert group in self.groups.keys() and group in {'-X','+X','-Y','+Y','-Z','+Z'}, "{'-X','+X','-Y','+Y','-Z','+Z'} are valid groups"
+        
+        axis_name = group[-1]
+        indices = ['X','Y','Z']
+        axis = indices.index(axis_name)
+        self.vonNeumann_BC(group,0.,0)
+        self.dirichlet_BC(group,0.,axis)
+        
+        
+    
+    
+    
     @setup
     def to_warp(self,*args,**kwargs):
         self.warp_boundary_xyz_indices = wp.array(self.boundary_xyz_indices,dtype=wp.vec3i)
@@ -106,6 +131,9 @@ class GridBoundary(Boundary):
             ]
         )
         return self.output_array
+    
+    
+    
     
 def create_boundary_kernel(input_dtype,ghost_cells,dx):
     dx = dx
@@ -151,4 +179,6 @@ def create_boundary_kernel(input_dtype,ghost_cells,dx):
             # for j in range(wp.static(ghost_cells)):
     return boundary_kernel
         
-        
+    
+    
+    
