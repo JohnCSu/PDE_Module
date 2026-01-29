@@ -43,5 +43,5 @@ def eligible_dims_and_shift(grid_shape,ghost_cells):
     if ghost cells is non_zero then we the second vector is [ghost_cells,ghost_cells,0]
     '''
     d = tuple(i for i,x in enumerate(grid_shape) if x > 1 ) # Store dimensions that are eligible
-    return wp.types.vector(length=len(d),dtype = int)(d),wp.vec3i([ghost_cells if x > 1 else 0 for x in grid_shape])
+    return wp.types.vector(length=len(d),dtype = int)(d) , wp.vec3i([ghost_cells if x > 1 else 0 for x in grid_shape])
 
