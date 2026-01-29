@@ -9,6 +9,7 @@ dependencies = [
     "numba>=0.62.1",
     "numpy>=2.3.2",
     "pandas>=2.3.3",
+    "scipy>=1.17.0",
     "warp-lang>=1.9.0",
 ]
 
