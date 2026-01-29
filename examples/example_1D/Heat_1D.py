@@ -1,27 +1,39 @@
 
 # %%
 import warp as wp
+import numpy as np
+wp.init()
 
+xx = wp.ones(shape =(3,3),dtype=float)
+yy = wp.ones(shape =(3,3),dtype=float)
+
+a = wp.types.vector(2,dtype = wp.uint64)()
+a[0] = xx.ptr
+a[1] = yy.ptr
+
+# a = wp.array(a,dtype=wp.uint64)
 
 @wp.kernel
-def test(a:wp.array(dtype=wp.mat33)):
-    
-    
+def test():
     i = wp.tid()
-    v = wp.vec3f(1.,1.,1.)
-    # for j in range(3):
-    #     a[i][j,0] = v[j]
+    accum = 0.
+    for j in range(wp.static(len(a))):
+        ptr = wp.static(wp.uint64(a[j]))
+        x = wp.array(ptr=ptr,shape = (9,),dtype=wp.float32)
+        accum += x[i]
     
-    m = wp.mat33()
-    m[0,:] = v
-    m *= 2.    
-    a[i] = m
+    x[i] = accum
+    
+    
+    
 
 
-a = wp.zeros(shape = 1,dtype=wp.mat33)
-
-wp.launch(kernel=test, dim = 1,inputs= [a])
 
 
-print(a.numpy())
+wp.launch(kernel=test, dim = 1,inputs= [])
+
+print(yy.numpy())
+
+print(xx.numpy())
+# print(xx.numpy())
 # %%
