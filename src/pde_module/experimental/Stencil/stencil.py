@@ -24,13 +24,18 @@ class Stencil:
     - Register stencil like nn.Module (Far into future)
     - Add grad for autodiff
     '''
-    step:int = 0
     float_dtype: wp.float32 | wp.float64 
-    def __init__(self,input_dtype,output_dtype,float_dtype):        
+    def __init__(self,input_dtype,output_dtype,float_dtype,debug = False):        
         self.initial = True
         self._input_dtype = input_dtype
         self._output_dtype = output_dtype
         self.float_dtype = float_dtype
+        self._debug = debug
+        
+    @property
+    def debug(self):
+        return self._debug
+    
     
     @property
     def output_dtype(self) -> wp_Matrix | wp_Vector:
@@ -62,6 +67,9 @@ class Stencil:
             for attr in dir(self):
                 method = getattr(self,attr)
                 if hasattr(method,f'_{call}_order') and callable(method):
+                    if getattr(method,'_debug') and self.debug is False:
+                        #Skip append if self.debug is False but method debug is set to true    
+                        continue 
                     call_list.append(method)
                     
             setattr(self,call_list_name,sorted(call_list,key = lambda x: getattr(x,f'_{call}_order')))
@@ -105,18 +113,17 @@ class Stencil:
     def __call__(self,*args,**kwargs):
         '''
         Call Function to Stencil. Does the following:
-        1. Setup (if step == 0)(default: create output array and create kernel.)
-        2. Before Forward Call (default: zero output array)
+        1. Setup (if initial == True else skip)
+        2. Before Forward Call
         3. Forward call - Do your calcs here (MUST BE IMPLEMENTED)
-        4. After Forward Call (default does nothing)
-        5. increment step counter by 1
+        4. After Forward Call
+        5. Return contents from forward call
         '''
         if self.initial:
             self.setup(*args,**kwargs)
         self.before_forward(*args,**kwargs)
         output = self.forward(*args,**kwargs)
         self.after_forward(*args,**kwargs)
-        self.step += 1
         return output
         
     
