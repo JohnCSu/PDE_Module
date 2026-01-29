@@ -19,7 +19,7 @@ class Boundary(ExplicitUniformGridStencil):
         assert type_is_vector(self.input_dtype), 'input must be vector type'
         assert type(ghost_cells) is int and ghost_cells > 0
         self.ghost_cells = ghost_cells
-        
+        self.dimension = self.calculate_dimension_from_field_shape(self.field_shape)
         self.field_shape = self.field_shape_with_no_ghost_cells(field.shape,ghost_cells)
         self.ghost_shape = field.shape
         
@@ -77,4 +77,18 @@ class Boundary(ExplicitUniformGridStencil):
     def vonNeumann_BC(self,group:str|int|np.ndarray|list|tuple,value:float,outputs_ids:int|np.ndarray|list|tuple|None = None):
         self.set_BC(group,value,1,outputs_ids)
         
+        
+    def no_slip(self,group:str|int|np.ndarray|list|tuple):
+        '''
+        If the input dtype matches the vector length, assumes it is a velocity vector
+        '''
+        assert self.inputs[0] == self.dimension, 'Valid only when input_dtype is vector with same length equal to dimension of field'
+        self.set_BC(group,0,0)
+    
+    def impermeable(self,group,value,output_id):
+        '''
+        for side walls
+        '''
+        assert self.inputs[0] == self.dimension, 'Valid only when input_dtype is vector with same length equal to dimension of field'
+        self.set_BC(group,0,0)
         

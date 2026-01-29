@@ -29,7 +29,7 @@ class ImmersedBoundary(Boundary):
         
     def finalize(self):
         '''
-        Once we are happy with all the output_ids
+        calculate the final boundaries of the bitmask from multiple different shapes
         '''
         self._find_solid_boundary()
         self._find_fluid_boundary()
@@ -70,7 +70,7 @@ class ImmersedBoundary(Boundary):
     @setup
     def to_warp(self,*args,**kwargs):
         adj_matrix = matrix((self.dimension,2),dtype = wp.int8)
-        self.warp_solid_indices = wp.array(self.solid_indices,dtype=wp.vec3i)
+        self.warp_solid_boundary_indices = wp.array(self.solid_boundary,dtype=wp.vec3i)
         self.warp_fluid_neighbors = wp.array(self.fluid_neighbors,dtype=adj_matrix)
         self.warp_boundary_type =wp.array(self.boundary_type)
         self.warp_boundary_value = wp.array(self.boundary_value,dtype = self.input_dtype)
@@ -87,8 +87,8 @@ class ImmersedBoundary(Boundary):
     
     def forward(self, input_array,*args,**kwargs):
         
-        wp.launch(self.kernel,dim = len(self.solid_indices),inputs= [input_array,
-                                                                     self.warp_solid_indices,
+        wp.launch(self.kernel,dim = len(self.warp_solid_boundary_indices),inputs= [input_array,
+                                                                     self.warp_solid_boundary_indices,
                                                                      self.warp_boundary_value,
                                                                      self.warp_boundary_type,
                                                                      self.warp_fluid_neighbors
@@ -119,7 +119,6 @@ def create_staircase_boundary_kernel(input_dtype,ghost_shape,ghost_cells,dx):
     float_type = input_dtype._wp_scalar_type_
     dx = float_type(dx)
     shift = wp.vec2i(-1,1)
-    
     @wp.kernel
     def boundary_kernel(
         current_values:wp.array3d(dtype = input_dtype),
@@ -242,9 +241,9 @@ def locate_boundary(ghost_shape,ghost_cells):
     def locate_boundary_kernel(bit_array:wp.array3d(dtype=wp.int8),
                         solid_indices:wp.array(dtype = wp.vec3i),
                         is_boundary_indices:wp.array(dtype=wp.bool)):
-        i = wp.tid()
+        tid = wp.tid()
         
-        solid_index = solid_indices[i]
+        solid_index = solid_indices[tid]
         # wp.printf('Solid_index:%d, %d, %d \n',solid_index[0],solid_index[1],solid_index[2])
         for d in range(wp.static(len(eligible_dims))):
             j = eligible_dims[d]
@@ -257,9 +256,9 @@ def locate_boundary(ghost_shape,ghost_cells):
             # wp.printf('right :%d, %d, %d %d \n',adj_r[0],adj_r[1],adj_r[2],bit_array[adj_l[0],adj_l[1],adj_l[2]] )
             # wp.printf('left :%d, %d, %d %d \n',adj_l[0],adj_l[1],adj_l[2],bit_array[adj_r[0],adj_r[1],adj_r[2]])
             
-            if (bit_array[adj_l[0],adj_l[1],adj_l[2]] == wp.uint8(0))  or (bit_array[adj_r[0],adj_r[1],adj_r[2]] == wp.uint8(0)):
-                is_boundary_indices[i] = True
-                break    
+            if (bit_array[adj_l[0],adj_l[1],adj_l[2]] == wp.int8(0))  or (bit_array[adj_r[0],adj_r[1],adj_r[2]] == wp.int8(0)):
+                is_boundary_indices[tid] = True
+                return    
             
     return locate_boundary_kernel
         

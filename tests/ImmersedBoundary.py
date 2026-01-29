@@ -15,7 +15,7 @@ wp.init()
 wp.config.mode = "debug"
 
 if __name__ == '__main__':
-    n = 4
+    n = 21
     L = 1
     dx = L/(n-1)
     ghost_cells = 1
@@ -33,7 +33,24 @@ if __name__ == '__main__':
     
     meshgrid = grid.create_meshgrid('node')
     cyl.from_bool_func(func,meshgrid)
-    print(cyl.bitmask.squeeze())
+
     cyl.finalize()
     cyl.setup(u)
     cyl(u)
+    
+    # print(cyl.bitmask.squeeze())
+    # print(cyl.solid_indices)    
+
+    solid_meshgrid = grid.create_meshgrid('node')
+    X,Y = solid_meshgrid[:2]
+        
+    idx = tuple(cyl.solid_boundary.T)
+    x,y = X[idx],Y[idx]
+    plt.scatter(x,y,s = 1,label = 'Boundary')
+    plt.colorbar()
+    plt.legend()
+    plt.show()
+    
+    
+    
+    
