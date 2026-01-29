@@ -36,8 +36,12 @@ if __name__ == '__main__':
     
     u = grid.create_node_field(2)
     u_BC = GridBoundary(u,dx,ghost_cells)
-    u_BC.dirichlet_BC('ALL',0.)
+    # u_BC.dirichlet_BC('ALL',0.)
     u_BC.dirichlet_BC('-X',1.,0)
+    u_BC.impermeable('+Y')
+    u_BC.impermeable('-Y')
+    u_BC.vonNeumann_BC('+X',0.)
+    
     
     u_cyl = ImmersedBoundary(u,dx,ghost_cells)
     u_cyl.from_bool_func(cyl,meshgrid)
@@ -53,6 +57,7 @@ if __name__ == '__main__':
     p = grid.create_node_field(1)
     p_BC = GridBoundary(p,dx,ghost_cells)
     p_BC.vonNeumann_BC('ALL',0.)
+    p_BC.dirichlet_BC('+X',0.)
     
     p_cyl = ImmersedBoundary(p,dx,ghost_cells)
     p_cyl.from_bool_func(cyl,meshgrid)
@@ -77,18 +82,16 @@ if __name__ == '__main__':
     # u_ibm = u_cyl.setup(u)
     # u_fix = u_BC.setup(u)
     for i in range(0,10001 ):
-    #         wp.capture_launch(capture.graph)
-    #         if i % 1000 == 0:
-    #             print(f'Max u = {u.numpy().max()} at t = {t},iter = {i}')
-    
+        
+        # U field Calcs
         u_ibm = u_cyl(u)
         u_fix = u_BC(u_ibm)
         u_diff = u_lapl(u_fix,viscosity)
         du = u_grad(u_fix)
         u_incomp = u_div(u_fix,-beta)
-        
         u_conv = du*u
         
+        #Pressure Field Calcs
         p_ibm = p_cyl(p)
         p_fix = p_BC(p_ibm)
         
