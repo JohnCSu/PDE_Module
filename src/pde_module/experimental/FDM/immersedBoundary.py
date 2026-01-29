@@ -14,7 +14,7 @@ class ImmersedBoundary(Boundary):
     def __init__(self,field,dx,ghost_cells:int):
         super().__init__(field,dx,ghost_cells)
         self.bitmask = np.zeros(self.ghost_shape,dtype = np.int8)
-        self.dimension = self.calculate_dimension_from_field_shape(self.field_shape)
+        
     
     def from_bool_func(self,fn,meshgrid):
         '''
