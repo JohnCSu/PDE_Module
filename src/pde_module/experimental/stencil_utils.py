@@ -34,6 +34,51 @@ def create_stencil_op(input_vector:vector,stencil:vector,ghost_cells:int):
     return stencil_op
 
 
+
+def create_tensor_divergence_op(input_matrix:matrix,stencil:vector,grid_shape,ghost_cells:int):
+    '''
+    Row Wise tensor
+    TODO:
+    - We can vectorise the operation by gathering the vectors into a matrix (by cols) and then matmul with stencil
+    '''
+    N,D = input_matrix._shape_
+    length = stencil._length_
+    assert (length % 2) == 1,'stencil must be odd sized'
+    max_shift = (length -1)//2
+    assert max_shift <= ghost_cells ,'Max shift must be <=  ghost cell to avoid out of bounds array access!'
+    
+    eligible_dims,_ = eligible_dims_and_shift(grid_shape,ghost_cells)
+    assert D == len(eligible_dims), 'Dimensions of field and num col in matrix must match'
+    
+    output_vec = vector(N,input_matrix._wp_scalar_type_)
+    # matrix_sum
+    
+    @wp.func
+    def tensor_divergence(input_values:wp.array3d(dtype=input_matrix),
+                   index:wp.vec3i,
+                   stencil:type(stencil)
+                   ):
+        
+        # mat = input_matrix()
+        out= output_vec()
+        for d in range(wp.static(len(eligible_dims))):
+            axis = eligible_dims[d]
+            for i in range(wp.static(length)):
+                shift = i - max_shift
+                stencil_index = index
+                stencil_index[axis] = index[axis] + shift
+                current_val_mat = input_values[stencil_index[0],stencil_index[1],stencil_index[2]]
+                out += current_val_mat[:,axis]*stencil[i]
+            #  += mat[:,axis]
+        
+        
+        return out
+            
+    return tensor_divergence
+
+
+
+
 def eligible_dims_and_shift(grid_shape,ghost_cells):
     '''
     Return dims that have more than 1 points in that direction as a vector and also the corresponding shift in each
