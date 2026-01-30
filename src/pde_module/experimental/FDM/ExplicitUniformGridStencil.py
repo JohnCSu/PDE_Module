@@ -59,7 +59,7 @@ class ExplicitUniformGridStencil(Stencil):
     
     
     @staticmethod
-    def calculate_dimension_from_field_shape(shape):
+    def calculate_dimension_from_grid_shape(shape):
         return sum([1 for s in shape if s > 1])
     
     
@@ -104,7 +104,7 @@ class ExplicitUniformGridStencil(Stencil):
     
     
     @staticmethod
-    def field_shape_with_no_ghost_cells(grid_shape,ghost_cells):
+    def grid_shape_with_no_ghost_cells(grid_shape,ghost_cells):
         '''
         Given ghost_cells, calculate field shape with no ghost cells
         '''
