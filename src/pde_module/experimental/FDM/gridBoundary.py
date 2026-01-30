@@ -20,11 +20,11 @@ class GridBoundary(Boundary):
         boundary_xyz_indices = []
         
         for i in range(3):
-            if self.field_shape[i] == 1:
+            if self.grid_shape_without_ghost[i] == 1:
                 continue 
-            axis_limits = (0,self.field_shape[i]-1)
+            axis_limits = (0,self.grid_shape_without_ghost[i]-1)
             for axis_lim in axis_limits:
-                side = list(self.field_shape)
+                side = list(self.grid_shape_without_ghost)
                 side[i] = 1
                 
                 indices = np.indices(side,dtype = np.int32)
@@ -32,7 +32,7 @@ class GridBoundary(Boundary):
                 indices[:,i] = axis_lim
                 
                 for ax in range(3):
-                    if self.field_shape[ax] != 1 :
+                    if self.grid_shape_without_ghost[ax] != 1 :
                         indices[:,ax] += self.ghost_cells
                 # print(indices)
                 
@@ -52,9 +52,9 @@ class GridBoundary(Boundary):
         self.groups['ALL'] = self.boundary_indices
         
         for axis,axis_name in enumerate(['X','Y','Z']):
-            if self.field_shape[axis] == 1:
+            if self.grid_shape_without_ghost[axis] == 1:
                 continue
-            coords = self.field_shape[axis]
+            coords = self.grid_shape_without_ghost[axis]
             
             axis_limits = [0 + self.ghost_cells,coords-1 + self.ghost_cells] # We have the shifts existing
             
@@ -65,7 +65,7 @@ class GridBoundary(Boundary):
     def define_interior_adjacency(self):
         self.boundary_interior = np.zeros(shape = (len(self.boundary_xyz_indices),3),dtype = np.int32)
         for i,axis in enumerate(['X','Y','Z']):
-            if self.field_shape[i] == 1:
+            if self.grid_shape_without_ghost[i] == 1:
                 continue
             for parity in ['-','+']:
                 sign = 1 if parity == '-' else -1
@@ -79,7 +79,7 @@ class GridBoundary(Boundary):
         If the input dtype matches the vector length, assumes it is a velocity vector
         '''
         assert self.inputs[0] == self.dimension, 'Valid only when input_dtype is vector with same length equal to dimension of field'
-        self.dirichlet_BC(group,0)
+        self.dirichlet_BC(group,0.)
     
     def impermeable(self,group):
         '''
@@ -93,11 +93,7 @@ class GridBoundary(Boundary):
         indices = ['X','Y','Z']
         axis = indices.index(axis_name)
         self.vonNeumann_BC(group,0.,0)
-        self.dirichlet_BC(group,0.,axis)
-        
-        
-    
-    
+        self.dirichlet_BC(group,0.,axis)    
     
     @setup
     def to_warp(self,*args,**kwargs):
