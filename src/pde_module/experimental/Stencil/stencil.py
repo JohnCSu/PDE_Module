@@ -25,8 +25,9 @@ class Stencil:
     - Add grad for autodiff
     '''
     float_dtype: wp.float32 | wp.float64 
+    initial:bool = True
+    _debug:bool = False
     def __init__(self,input_dtype,output_dtype,float_dtype,debug = False):        
-        self.initial = True
         self._input_dtype = input_dtype
         self._output_dtype = output_dtype
         self.float_dtype = float_dtype
@@ -44,7 +45,6 @@ class Stencil:
     @property
     def input_dtype(self) ->wp_Matrix | wp_Vector :
         return self._input_dtype
-    
     
     
     def create_output_array(self,input_array:wp.array):
