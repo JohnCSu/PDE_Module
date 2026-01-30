@@ -35,9 +35,10 @@ class Boundary(ExplicitUniformGridStencil):
         Create the numpy array attributes boundary_value and boundary_type arrays for the field and set the 'ALL' Group to the indices passed in
         '''
         shape = (len(indices),) + self.input_dtype_shape
+        self.boundary_ids = np.arange(len(indices))
         self.boundary_value = np.zeros(shape,dtype=wp.dtype_to_numpy(self.input_scalar_type))
         self.boundary_type = np.zeros_like(self.boundary_value,dtype = np.int8)
-        self.groups['ALL'] = indices
+        self.groups['ALL'] = self.boundary_ids
         
     
     def _check_output_ids(self,output_ids:int|np.ndarray|list|tuple|None):

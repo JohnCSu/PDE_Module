@@ -48,8 +48,8 @@ class GridBoundary(Boundary):
         Can be optimized with numba so we only to one sweep through all boundary indices
         '''
         
-        self.boundary_indices = np.arange(len(self.boundary_xyz_indices),dtype = np.int32)
-        self.groups['ALL'] = self.boundary_indices
+        self.boundary_ids = np.arange(len(self.boundary_xyz_indices),dtype = np.int32)
+        self.groups['ALL'] = self.boundary_ids
         
         for axis,axis_name in enumerate(['X','Y','Z']):
             if self.grid_shape_without_ghost[axis] == 1:
@@ -60,7 +60,7 @@ class GridBoundary(Boundary):
             
             for axis_limit,parity in zip(axis_limits,['-','+']):
                 name = parity + axis_name
-                self.groups[name] = self.boundary_indices[self.boundary_xyz_indices[:,axis] == axis_limit]
+                self.groups[name] = self.boundary_ids[self.boundary_xyz_indices[:,axis] == axis_limit]
         
     def define_interior_adjacency(self):
         self.boundary_interior = np.zeros(shape = (len(self.boundary_xyz_indices),3),dtype = np.int32)
@@ -114,7 +114,7 @@ class GridBoundary(Boundary):
         # wp.copy(self.output_array,input_array)
         wp.launch(
             kernel=self.kernel,
-            dim = (len(self.boundary_indices),*self.input_dtype_shape),
+            dim = (len(self.boundary_ids),*self.input_dtype_shape),
             inputs=[
                 input_array,
                 self.warp_boundary_xyz_indices,
@@ -168,7 +168,7 @@ def create_boundary_kernel(input_dtype,ghost_cells,dx):
                     new_values[x,y,z][var] =  val
                     new_values[ghostID[0],ghostID[1],ghostID[2]][var] =  type(dx)(2.)*val - current_values[adjID[0],adjID[1],adjID[2]][var]
                 elif boundary_type[i][var] == VON_NEUMANN:
-                    new_values[ghostID[0],ghostID[1],ghostID[2]][var] = val - wp.sign(float_type(inc_vec[axis]))*current_values[adjID[0],adjID[1],adjID[2]][var]*dx
+                    new_values[ghostID[0],ghostID[1],ghostID[2]][var] = - wp.sign(float_type(inc_vec[axis]))*float_type(2.)*dx*val + current_values[adjID[0],adjID[1],adjID[2]][var]
         
 
                     
