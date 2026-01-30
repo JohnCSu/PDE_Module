@@ -65,19 +65,7 @@ class ExplicitUniformGridStencil(Stencil):
     
     @staticmethod
     def _get_dtype_from_shape(shape:tuple[int],float_dtype):
-        
-        if isinstance(shape,Iterable):
-            assert all([isinstance(x,int) for x in shape]), 'contents in input/output must be int only'
-        else:
-            assert isinstance(shape,int)
-            shape = tuplify(shape)
-            
-        
-        if len(shape) == 1:
-            return vector(length = shape[0],dtype = float_dtype)
-        else:
-            return matrix(shape = shape, dtype = float_dtype)
-        
+        return dtype_from_shape(shape,float_dtype)
         
     @staticmethod
     def get_shape_from_dtype(dtype):

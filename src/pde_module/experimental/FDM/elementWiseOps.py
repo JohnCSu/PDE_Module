@@ -3,7 +3,7 @@ from ..Stencil.elementWise import ElementWise
 import warp as wp
 from warp.types import vector,matrix,types_equal
 from ..Stencil.hooks import *
-
+from ..utils import dtype_from_shape
 
 def scalarVectorDiv(scalar_field,vector_field):
     scalar_dtype = scalar_field.dtype
@@ -37,7 +37,8 @@ class scalarVectorMult(ElementWise):
     '''
     Multiply a scalar field (i.e. vector with length 1) with a corresponding vector/matrix field (which can be arbitary).
     '''
-    def __init__(self, output_dtype, float_dtype=wp.float32):
+    def __init__(self, outputs, float_dtype=wp.float32):
+        output_dtype = dtype_from_shape(outputs,float_dtype)
         element_op = scalarVectorMultiply(output_dtype)
         super().__init__(element_op, output_dtype, float_dtype)
 
