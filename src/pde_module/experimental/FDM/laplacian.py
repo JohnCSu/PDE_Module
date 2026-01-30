@@ -10,7 +10,7 @@ class Laplacian(ExplicitUniformGridStencil):
     '''
     Calculate Divergence using uniform central differences
     '''
-    def __init__(self,inputs,dx:float,ghost_cells,stencil = None, float_dtype=wp.float32):
+    def __init__(self,inputs:int,dx:float,ghost_cells,stencil = None, float_dtype=wp.float32):
         
         if stencil is None:
             self.stencil = wp.types.vector(3,dtype = float_dtype)([1./dx**2,-2./dx**2,1/dx**2])
@@ -25,7 +25,7 @@ class Laplacian(ExplicitUniformGridStencil):
         assert types_equal(self.input_dtype,input_array.dtype)
         assert len(self.inputs) == 1,'Laplacian Only For Vectors'
         self.kernel = create_Laplacian_kernel(self.input_dtype,input_array.shape,self.stencil,self.ghost_cells)
-        self.kernel_dim = self.field_shape_with_no_ghost_cells(input_array.shape,self.ghost_cells)
+        self.kernel_dim = self.grid_shape_with_no_ghost_cells(input_array.shape,self.ghost_cells)
     
     
     def forward(self, input_array,alpha = 1.,*args,**kwargs):    

@@ -10,10 +10,10 @@ class Grad(ExplicitUniformGridStencil):
     Calculate gradient of a scalar vector or the jacobian of a vector. setting force_matrix = True will always return a matrix dtype
     
     '''
-    def __init__(self,inputs,field_shape,dx:float,ghost_cells,force_matrix:bool = False, float_dtype=wp.float32):
+    def __init__(self,inputs,grid_shape,dx:float,ghost_cells,force_matrix:bool = False, float_dtype=wp.float32):
         
         self.force_matrix = force_matrix
-        dimension = self.calculate_dimension_from_field_shape(field_shape)
+        dimension = self.calculate_dimension_from_grid_shape(grid_shape)
         self.stencil = wp.types.vector(3,dtype = float_dtype)([-1./(2*dx),0.,1/(2*dx)])
         
         assert type(inputs) is int and inputs > 0
@@ -32,7 +32,7 @@ class Grad(ExplicitUniformGridStencil):
         assert types_equal(self.input_dtype,input_array.dtype)
         assert len(self.inputs) == 1,'Laplacian Only For Vectors'
         self.kernel = create_Grad_kernel(self.input_dtype,self.output_dtype,input_array.shape,self.stencil,self.ghost_cells)
-        self.kernel_dim = self.field_shape_with_no_ghost_cells(input_array.shape,self.ghost_cells)
+        self.kernel_dim = self.grid_shape_with_no_ghost_cells(input_array.shape,self.ghost_cells)
     
     def forward(self, input_array,alpha = 1.,*args,**kwargs):    
         wp.launch(self.kernel,dim = self.kernel_dim,inputs = [
