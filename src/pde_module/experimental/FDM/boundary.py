@@ -19,9 +19,15 @@ class Boundary(ExplicitUniformGridStencil):
         assert type_is_vector(self.input_dtype), 'input must be vector type'
         assert type(ghost_cells) is int and ghost_cells > 0
         self.ghost_cells = ghost_cells
-        self.field_shape = self.field_shape_with_no_ghost_cells(field.shape,ghost_cells)
-        self.ghost_shape = field.shape
-        self.dimension = self.calculate_dimension_from_field_shape(self.field_shape)
+        self.grid_shape_without_ghost = self.grid_shape_with_no_ghost_cells(field.shape,ghost_cells)
+        '''
+        Shape of field with no ghost cells
+        '''
+        self.grid_shape = field.shape
+        '''
+        Shape of field including ghost cells
+        '''
+        self.dimension = self.calculate_dimension_from_grid_shape(self.grid_shape)
     
     
     def define_boundary_value_and_type_arrays(self,indices):
