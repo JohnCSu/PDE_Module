@@ -92,8 +92,8 @@ class GridBoundary(Boundary):
         axis_name = group[-1]
         indices = ['X','Y','Z']
         axis = indices.index(axis_name)
-        self.vonNeumann_BC(group,0.,0)
-        self.dirichlet_BC(group,0.,axis)    
+        self.vonNeumann_BC(group,0.) # Set all to vonneumann
+        self.dirichlet_BC(group,0.,axis) # Set corresponding axis to dirichlet
     
     @setup
     def to_warp(self,*args,**kwargs):
@@ -133,8 +133,8 @@ class GridBoundary(Boundary):
     
 def create_boundary_kernel(input_dtype,ghost_cells,dx):
     dx = dx
-    DIRICHLET = wp.int8(0)
-    VON_NEUMANN = wp.int8(1)
+    DIRICHLET = wp.int8(1)
+    VON_NEUMANN = wp.int8(2)
     
     float_type = input_dtype._wp_scalar_type_
     @wp.kernel
