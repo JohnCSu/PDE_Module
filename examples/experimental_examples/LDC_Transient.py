@@ -11,12 +11,20 @@ from pde_module.experimental.FDM.immersedBoundary import ImmersedBoundary
 from pde_module.experimental.FDM.grad import Grad
 from pde_module.experimental.FDM.divergence import Divergence
 from pde_module.experimental.FDM.elementWiseOps import scalarVectorMult,OuterProduct
+from pde_module.experimental.Stencil.mapWise import MapWise
+from warp.types import vector,matrix,types_equal
+
+import matplotlib.pyplot as plt
+from matplotlib.animation import FuncAnimation
+
+
+
 
 wp.init()
 # wp.config.mode = "debug"
 
 if __name__ == '__main__':
-    n = 51
+    n = 201
     L = 1
     dx = L/(n-1)
     ghost_cells = 1
@@ -29,13 +37,13 @@ if __name__ == '__main__':
     # Runtime params
     viscosity = 1/100
     density = 1.
-    M = 0.3
+    M = 0.2
     cs = U/M
     c2 = cs**2
     
     # beta = 0.3
     beta = 1/(U**2/c2)
-    CFL_LIMIT = 0.3
+    CFL_LIMIT = 0.75
     
     d_vis = CFL_LIMIT*float(dx**2/(viscosity))
     d_conv = CFL_LIMIT*dx/c2
@@ -64,7 +72,6 @@ if __name__ == '__main__':
     u_conv_div = Divergence((2,2),u.shape,dx,ghost_cells)
     
     
-
     rho = grid.create_node_field(1)
     rho.fill_(1.)
     # u.fill_(1.)
@@ -85,27 +92,21 @@ if __name__ == '__main__':
     momentum_div = Divergence(2,u.shape,dx,ghost_cells)
     momentum = scalarVectorMult(2)
 
+    # wp.vec3f()
     
+    @wp.func
+    def get_p_op(rho:vector(1,float),c2:float,density:float):
+        rho[0] = c2*(rho[0] - density)
+        return rho
+    
+    get_p = MapWise(get_p_op)
+    
+    get_u_from_m = MapWise(lambda m,rho: m/rho[0])
     t= 0
-    '''
-    Equations:
-
-    du/dt = d^2u/dx^2 - dp/dx
-    dv/dt = d^2v/dx^2 - dp/dx
-
-    dp/dt +beta * div(u) = 0
-    '''
-    # Inital Pass + Setup Of kernels
-    wp.set_mempool_release_threshold("cuda:0", 0.50)
-    # u_ibm = u_cyl.setup(u)
-    # u_fix = u_BC.setup(u)
     
-    for i in range(0,20001 ):    
-        # Boundary
-        
+    def f(t,u,rho):
         u_fix = u_BC(u)
         rho_fix = rho_BC(rho)
-
         # Momentum
         m = momentum(rho_fix,u_fix)
         m_div = momentum_div(m,-1.)
@@ -116,42 +117,65 @@ if __name__ == '__main__':
         u_conv = u_conv_div(u_2)
         
         #Pressure Gradient
-        p = cs**2*(rho.view(float) - density).view(rho.dtype)
+        # p = cs**2*(rho.view(float) - density).view(rho.dtype)
+        p = get_p(rho_fix,c2,density)
+        # print(p.numpy().squeeze())
         dp = p_grad(p,-1.)
         # Sum
         u_F = dp - u_conv + u_diff
-        m_next = u_step(m,u_F,dt)
-        
-        # print(rho_fix.numpy().squeeze())
-        # print(p.numpy().squeeze())
-        # print(u_fix.numpy().squeeze()[:,:,0])
-        
-        
+        m_next = u_step(m,u_F,dt)    
         rho_next = rho_step(rho_fix,m_div,dt)
-        
-        u_next = m_next/rho_next.view(float)
-        
+        u_next = get_u_from_m(m_next,rho_next)
         u,rho = u_next,rho_next
-        
-        t+= dt
-        
-        if i % 100 == 0:
-            print(f'Max p = {p.numpy().max()}, u = {u_next.numpy().max()} at t = {t},iter = {i}')
+        return u,rho
     
+    # print(u.shape,p.shape)
+    u,rho = f(t,u,rho)
+    t+=dt
+    with wp.ScopedCapture() as capture:
+        u,rho = f(t,u,rho)
 
-    # Trim Values
+    # Create the animation
+    
+    meshgrid = grid.create_meshgrid('node')[:2]
+    X,Y = [m.squeeze() for m in meshgrid]
+    fig, ax = plt.subplots()
+    im = ax.imshow(u.numpy().squeeze()[:,:,0].T,origin='lower', animated=True, cmap='jet',vmin = 0.,vmax = 1.)
+    # im = ax.contourf(X,Y,,cmap= 'jet')
+    fig.colorbar(im, ax=ax, label='U mag')
+    
+    step_per_frame = 250
+    TIME = 0
+    def render(frame,step_per_frame,dt):
+        
+        for i in range(step_per_frame):
+            wp.capture_launch(capture.graph)
+        
+        t = frame*step_per_frame*dt
+        new_u = u.numpy().squeeze()
+        u_mag = (new_u[:,:,0]**2 + new_u[:,:,1]**2)**0.5
+        ax.set_title(f'Step {frame*step_per_frame} Time = {t:.3f}')
+        # step += 1
+        im.set_data(u_mag.T)
+        return [im]
+        
+    
+    ani = FuncAnimation(fig,render , frames= 500, interval=1, repeat=False,fargs = [step_per_frame,dt])
+
+    plt.show()
+   
     meshgrid,us = grid.get_plotting_for('node',u)
-    meshgrid,p = grid.get_plotting_for('node',p)
+    meshgrid,p = grid.get_plotting_for('node',rho)
     u_plot = us[:,:,0]
     v_plot = us[:,:,1]
-    u_mag = np.sqrt(u_plot**2 + v_plot**2)
-    plt.contourf(*meshgrid,u_mag,cmap='jet',levels = np.linspace(0,1,20))
-    plt.colorbar()
-    plt.show()
+    # u_mag = np.sqrt(u_plot**2 + v_plot**2)
+    # plt.contourf(*meshgrid,u_mag,cmap='jet',levels = np.linspace(0,1,20))
+    # plt.colorbar()
+    # plt.show()
     
-    plt.contourf(*meshgrid,p,cmap='jet',levels = 100)
-    plt.colorbar()
-    plt.show()
+    # plt.contourf(*meshgrid,p,cmap='jet',levels = 100)
+    # plt.colorbar()
+    # plt.show()
     
     import pandas as pd
     v_benchmark = pd.read_csv(r'examples\v_velocity_results.csv',sep = ',')
