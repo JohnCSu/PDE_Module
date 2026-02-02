@@ -110,5 +110,8 @@ class ExplicitUniformGridStencil(Stencil):
     @setup(order = 1)
     def initialize_kernel(self,input_array,*args,**kwargs):
         ...
+        
+    def forward(self,input_array,*args, **kwargs):
+        raise NotImplementedError()
     
         
