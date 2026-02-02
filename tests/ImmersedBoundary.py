@@ -1,4 +1,3 @@
-
 import numpy as np
 import warp as wp
 from matplotlib import pyplot as plt
