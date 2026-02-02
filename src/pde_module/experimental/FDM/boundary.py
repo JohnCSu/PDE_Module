@@ -37,7 +37,7 @@ class Boundary(ExplicitUniformGridStencil):
         shape = (len(indices),) + self.input_dtype_shape
         self.boundary_ids = np.arange(len(indices))
         self.boundary_value = np.zeros(shape,dtype=wp.dtype_to_numpy(self.input_scalar_type))
-        self.boundary_type = np.zeros_like(self.boundary_value,dtype = np.int8)
+        self.boundary_type = np.ones_like(self.boundary_value,dtype = np.int8)
         self.groups['ALL'] = self.boundary_ids
         
     
@@ -61,9 +61,11 @@ class Boundary(ExplicitUniformGridStencil):
     def set_BC(self,face_ids:str|int|np.ndarray|list|tuple,value:float,boundary_type:int,outputs_ids:int|np.ndarray|list|tuple|None):
         '''
         Key:
-            0 -> Dirichlet
-            1 -> Von Neumann
+            1 -> Dirichlet
+            2 -> Von Neumann
         '''
+        
+        assert boundary_type != 0, 'boundary_type value of 0 is reserved as no BC applied to said outputs. THis is currently not allowed'
         
         if isinstance(face_ids,str):
             assert face_ids in self.groups.keys()
@@ -78,8 +80,8 @@ class Boundary(ExplicitUniformGridStencil):
         self.boundary_value[face_ids,outputs_ids] = value
         
     def dirichlet_BC(self,group:str|int|np.ndarray|list|tuple,value:float,outputs_ids:int|np.ndarray|list|tuple|None = None):
-        self.set_BC(group,value,0,outputs_ids)        
+        self.set_BC(group,value,1,outputs_ids)        
     
     def vonNeumann_BC(self,group:str|int|np.ndarray|list|tuple,value:float,outputs_ids:int|np.ndarray|list|tuple|None = None):
-        self.set_BC(group,value,1,outputs_ids)
+        self.set_BC(group,value,2,outputs_ids)
         
