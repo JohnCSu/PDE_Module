@@ -5,16 +5,6 @@ from warp.types import vector,matrix,types_equal
 from ..Stencil.hooks import *
 from ..utils import dtype_from_shape
 
-def scalarVectorDiv(scalar_field,vector_field):
-    scalar_dtype = scalar_field.dtype
-    scalar_float = scalar_dtype._wp_scalar_type_
-    return scalar_float(1.)/scalar_field.view(scalar_float) * vector_field
-
-def scalarVectorMulti(scalar_field,vector_field):
-    scalar_dtype = scalar_field.dtype
-    return scalar_field.view(scalar_dtype._wp_scalar_type_) * vector_field
-
-
 
 class OuterProduct(ElementWise):
     '''
@@ -50,3 +40,35 @@ def scalarVectorMultiply(output_dtype):
         return a[0]*b
         
     return _scalarVectorMultiply
+
+
+# class scalarVectorDiv(ElementWise):
+#     '''
+#     Multiply a scalar field (i.e. vector with length 1) with a corresponding vector/matrix field (which can be arbitary).
+#     '''
+#     def __init__(self, outputs, float_dtype=wp.float32):
+#         output_dtype = dtype_from_shape(outputs,float_dtype)
+#         element_op = scalarVectorDivide(output_dtype)
+#         super().__init__(element_op, output_dtype, float_dtype)
+
+
+# def scalarVectorDivide(output_dtype):
+#     float_type = output_dtype._wp_scalar_type_
+#     @wp.func
+#     def _scalarVectorMultiply(a:vector(1,float_type),b:output_dtype):
+#         return b/a[0]
+        
+#     return _scalarVectorMultiply
+
+
+# class VectorConstantAdd(ElementWise):
+#     '''
+#     Add a scalar Constant to array
+#     '''
+#     def __init__(self, outputs, float_dtype=wp.float32):
+#         output_dtype = dtype_from_shape(outputs,float_dtype)
+#         element_op = wp.add
+#         super().__init__(element_op, output_dtype, float_dtype)
+
+#     def forward(self,input_A,input_B):
+#         wp.launch()
