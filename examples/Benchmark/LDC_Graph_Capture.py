@@ -59,7 +59,7 @@ if __name__ == '__main__':
     u_lapl = Laplacian(2,dx,ghost_cells)
     u_grad = Grad(2,u.shape,dx,ghost_cells=ghost_cells)
     
-    u_div = Divergence('vector',u.shape,dx,ghost_cells)
+    u_div = Divergence(2,u.shape,dx,ghost_cells)
     u_step = ForwardEuler(u.dtype)
     
     p = grid.create_node_field(1)
@@ -71,38 +71,27 @@ if __name__ == '__main__':
 
     # Inital Pass + Setup Of kernels
     wp.set_mempool_release_threshold("cuda:0", 0.25)
-    u_fix = u_BC(u)
-    u_diff = u_lapl(u_fix,viscosity)
-    du = u_grad(u_fix)
-    u_incomp = u_div(u_fix,-beta)
-    
-    u_conv = du*u
-    
-    p_fix = p_BC(p)
-    dp = p_grad(p_fix,-1.)
-    u_F = dp - u_conv + u_diff
-    u_next = u_step(u_fix,u_F,dt)
-    p_next = p_step(p_fix,u_incomp,dt)
-    u,p = u_next,p_next
-    t+= dt
-    
-    with wp.ScopedCapture() as capture:   
-        #S1
+    def f(t,u,p):
         u_fix = u_BC(u)
         u_diff = u_lapl(u_fix,viscosity)
         du = u_grad(u_fix)
         u_incomp = u_div(u_fix,-beta)
+        
         u_conv = du*u
-        #S2
+        
         p_fix = p_BC(p)
         dp = p_grad(p_fix,-1.)
-        #S3
         u_F = dp - u_conv + u_diff
         u_next = u_step(u_fix,u_F,dt)
-        #S4
         p_next = p_step(p_fix,u_incomp,dt)
-        #Sync
         u,p = u_next,p_next
+        # t+= dt
+        return u,p
+    
+    u,p = f(t,u,p)
+    
+    with wp.ScopedCapture() as capture:   
+        u,p = f(t,u,p)
         
     with wp.ScopedTimer("LDC_Graph_Capture"):
         for i in range(1,10001):
