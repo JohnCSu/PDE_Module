@@ -13,7 +13,7 @@ class ImmersedBoundary(Boundary):
     # def __init__(self,field,dx,ghost_cells:int):
     def __init__(self,field,dx,ghost_cells:int):
         super().__init__(field,dx,ghost_cells)
-        self.bitmask = np.zeros(self.ghost_shape,dtype = np.int8)
+        self.bitmask = np.zeros(field.shape,dtype = np.int8)
         
     
     def from_bool_func(self,fn,meshgrid):
@@ -22,8 +22,8 @@ class ImmersedBoundary(Boundary):
         e.g.
         f(x,y) -> sqrt(x**2+y**2) < R
         '''
-        # We have a 3,ghost_shape array
-        assert meshgrid[0].shape == self.ghost_shape
+        # We have a 3,grid_shape array
+        assert meshgrid[0].shape == self.grid_shape
         bitmask = fn(*meshgrid)
         self.bitmask += bitmask.astype(np.int8)
         
@@ -40,15 +40,21 @@ class ImmersedBoundary(Boundary):
         # From the bitmask we need to go through all points and find the boundary
         self.solid_indices = np.stack(np.nonzero(self.bitmask),axis= -1,dtype=np.int32)
         is_solid_boundary = np.zeros(shape = len(self.solid_indices),dtype= np.bool) 
-        
         # Find solid Boundary
-        locate_boundary_kernel = locate_boundary(self.ghost_shape,self.ghost_cells)
+        locate_boundary_kernel = locate_boundary(self.grid_shape,self.ghost_cells)
         wp.launch(locate_boundary_kernel,len(self.solid_indices),inputs=[self.bitmask,self.solid_indices],outputs=[is_solid_boundary],device='cpu')
         self.solid_boundary = self.solid_indices[is_solid_boundary]
+        self.interior_solids= self.solid_indices[~is_solid_boundary]
+        # Convert to flattened indices
+        
+        L,H,W = self.grid_shape
+        x,y,z = self.interior_solids[:,0],self.interior_solids[:,1],self.interior_solids[:,2]
+        self.flat_array = (x*H*W) + y*W + z
+        
         
     def _find_fluid_boundary(self):
         #Find Fluid Boundary
-        identify_fluid_boundary = create_identify_fluid_boundary_kernel(self.ghost_shape,self.ghost_cells)
+        identify_fluid_boundary = create_identify_fluid_boundary_kernel(self.grid_shape,self.ghost_cells)
         max_neighbors = self.dimension*2
         
         fluid_boundary = wp.empty((len(self.solid_boundary),max_neighbors),dtype=wp.vec3i,device='cpu')
@@ -63,7 +69,7 @@ class ImmersedBoundary(Boundary):
         # identify Neighbors of fluid
         dim = self.dimension
         self.fluid_neighbors = np.zeros(shape = (len(self.solid_boundary),dim,2),dtype=np.int8)
-        identify_neighbors_kernel = identify_fluid_neighbors(self.ghost_shape,self.ghost_cells)
+        identify_neighbors_kernel = identify_fluid_neighbors(self.grid_shape,self.ghost_cells)
         wp.launch(identify_neighbors_kernel,dim = len(self.solid_boundary), inputs = [self.bitmask,self.solid_boundary],outputs=[self.fluid_neighbors],device = 'cpu')
     
     
@@ -75,19 +81,22 @@ class ImmersedBoundary(Boundary):
         self.warp_boundary_type =wp.array(self.boundary_type)
         self.warp_boundary_value = wp.array(self.boundary_value,dtype = self.input_dtype)
         
+        
+        self.warp_interior_solids = wp.array(self.interior_solids,dtype=wp.vec3i)
+        self.warp_interior_solid_indices = [wp.array(arr,dtype = int) for arr in np.moveaxis(self.interior_solids,0,-1)]
+        
     @setup
     def initialize_kernel(self, input_array, *args, **kwargs):
-        self.kernel = create_staircase_boundary_kernel(input_array.dtype,self.ghost_shape,self.ghost_cells,self.dx)
-    
+        self.kernel = create_staircase_boundary_kernel(input_array.dtype,self.grid_shape,self.ghost_cells,self.dx)
+        self.fill_solids_inplace_kernel = create_fill_solids_inplace(input_array.dtype)
     
     @before_forward
     def copy_array(self,input_array,*args,**kwargs):
         wp.copy(self.output_array,input_array)
     
     
-    def forward(self, input_array,*args,**kwargs):
-        
-        wp.launch(self.kernel,dim = len(self.warp_solid_boundary_indices),inputs= [input_array,
+    def forward(self, input_array,fill_value = 0.,*args,**kwargs):
+        wp.launch(self.kernel,dim = (len(self.warp_solid_boundary_indices),self.inputs[0]),inputs= [input_array,
                                                                      self.warp_solid_boundary_indices,
                                                                      self.warp_boundary_value,
                                                                      self.warp_boundary_type,
@@ -95,9 +104,30 @@ class ImmersedBoundary(Boundary):
                                                                      ],
                   outputs= [self.output_array])
         
+        wp.launch(self.fill_solids_inplace_kernel,dim = len(self.warp_interior_solids),inputs=[self.warp_interior_solids,fill_value],outputs= [self.output_array])
         return self.output_array 
 
-def create_staircase_boundary_kernel(input_dtype,ghost_shape,ghost_cells,dx):
+
+
+def create_fill_solids_inplace(input_dtype): 
+    
+    @wp.kernel
+    def fill_solids_inplace(
+        solid_boundary_indices:wp.array(dtype=wp.vec3i),
+        value: float,
+        new_values:wp.array3d(dtype = input_dtype),
+        
+    ):
+        tid = wp.tid() #Boundary Index
+        solidID = solid_boundary_indices[tid]
+        x = solidID[0]
+        y = solidID[1]
+        z = solidID[2]
+        new_values[x,y,z] = input_dtype(value)
+    return fill_solids_inplace
+
+
+def create_staircase_boundary_kernel(input_dtype,grid_shape,ghost_cells,dx):
     '''
     For Staircase appoximation:
     dirichlet = set solid bound to the value
@@ -105,13 +135,13 @@ def create_staircase_boundary_kernel(input_dtype,ghost_shape,ghost_cells,dx):
     
     '''
     
-    DIRICHLET = wp.int8(0)
-    VON_NEUMANN = wp.int8(1)
+    DIRICHLET = wp.int8(1)
+    VON_NEUMANN = wp.int8(2)
     
     FLUID_CELL = wp.int8(0)
     SOLID_CELL = wp.int8(1)
     
-    eligible_dims,_ = eligible_dims_and_shift(ghost_shape,ghost_cells)
+    eligible_dims,_ = eligible_dims_and_shift(grid_shape,ghost_cells)
     
     dim = len(eligible_dims)
     adj_matrix = matrix((dim,2),dtype = wp.int8)
@@ -122,7 +152,7 @@ def create_staircase_boundary_kernel(input_dtype,ghost_shape,ghost_cells,dx):
     @wp.kernel
     def boundary_kernel(
         current_values:wp.array3d(dtype = input_dtype),
-        solid_indices:wp.array(dtype=wp.vec3i),
+        solid_boundary_indices:wp.array(dtype=wp.vec3i),
         boundary_value:wp.array(dtype = input_dtype),
         boundary_type:wp.array2d(dtype = wp.int8),
         neighbors:wp.array(dtype=adj_matrix),
@@ -131,7 +161,7 @@ def create_staircase_boundary_kernel(input_dtype,ghost_shape,ghost_cells,dx):
         
         tid,var = wp.tid() #Boundary Index
         
-        solidID = solid_indices[tid]
+        solidID = solid_boundary_indices[tid]
         x = solidID[0]
         y = solidID[1]
         z = solidID[2]
@@ -148,11 +178,13 @@ def create_staircase_boundary_kernel(input_dtype,ghost_shape,ghost_cells,dx):
                             adj_vec = wp.vec3i()
                             for i in range(2):
                                 if neighbor_mat[axis,i] == FLUID_CELL:
-                                    adj_vec[j] = shift[i]
+                                    
+                                    adj_vec[j] = shift[i] # -1 or 1
+                                    
                                     fluid_idx = solidID + adj_vec
-                                    contribution_val = current_values[fluid_idx[0],fluid_idx[1],fluid_idx[2]][var] - BC_val*dx
+                                    contribution_val =  current_values[fluid_idx[0],fluid_idx[1],fluid_idx[2]][var]- float_type(shift[i])*BC_val*dx 
                                     # Add to running average
-                                    avg_value += avg_value + (contribution_val - avg_value)/n
+                                    avg_value += (contribution_val - avg_value)/n
                                     n += float_type(1.)
                         
                         new_values[x,y,z][var] = avg_value
@@ -164,8 +196,8 @@ def create_staircase_boundary_kernel(input_dtype,ghost_shape,ghost_cells,dx):
 
 
 
-def create_identify_fluid_boundary_kernel(ghost_shape,ghost_cells):
-    eligible_dims,_ = eligible_dims_and_shift(ghost_shape,ghost_cells)
+def create_identify_fluid_boundary_kernel(grid_shape,ghost_cells):
+    eligible_dims,_ = eligible_dims_and_shift(grid_shape,ghost_cells)
     
     dim = len(eligible_dims)
     
@@ -197,8 +229,8 @@ def create_identify_fluid_boundary_kernel(ghost_shape,ghost_cells):
 
 
 
-def identify_fluid_neighbors(ghost_shape,ghost_cells):
-    eligible_dims,_ = eligible_dims_and_shift(ghost_shape,ghost_cells)
+def identify_fluid_neighbors(grid_shape,ghost_cells):
+    eligible_dims,_ = eligible_dims_and_shift(grid_shape,ghost_cells)
     
     dim = len(eligible_dims)
     adj_matrix = matrix((dim,2),dtype = wp.int8)
@@ -234,8 +266,8 @@ def identify_fluid_neighbors(ghost_shape,ghost_cells):
         
 
 
-def locate_boundary(ghost_shape,ghost_cells):
-    eligible_dims,_ = eligible_dims_and_shift(ghost_shape,ghost_cells)
+def locate_boundary(grid_shape,ghost_cells):
+    eligible_dims,_ = eligible_dims_and_shift(grid_shape,ghost_cells)
     # print(eligible_dims)
     @wp.kernel
     def locate_boundary_kernel(bit_array:wp.array3d(dtype=wp.int8),
