@@ -1,4 +1,36 @@
+'''
+Transient lid driven cavity for Re = 100
 
+Using weakly compressible flow, we demonstrate the LDC problem as a time dependent flow.
+
+The 2 fields to solve are the velocity and density (rho) fields.
+
+Here we solve the conservative momentum equations where m is the target of interest rather than solving directly u as density is not a constant:
+
+m_{i} = rho_{i}*u_{i}
+p_{i} = cs**2(rho_{i} - rho_0)
+
+m_{i+1} = m_{i} + dt*(-dp - u_conv + u_diff - u_damp)_{i}
+rho_{i+1} = rho_{i} - dt*(div(m))
+
+u_{i+1} = m_{i+1}/rho_{i+1}
+
+Here:
+- u_conv = div(m outer u)
+- u_damp is biharmonic damping applied to all fluid nodes to prevent pressure checkerboarding
+
+Geometry Params:
+Domain = 1x1
+n = 201
+Runtime Params
+U = 1.
+Re = 100
+rho_0 = 1.
+M = 0.1
+CFL_limit = 0.1
+biharmonic_eps = 0.01
+
+'''
 import numpy as np
 import warp as wp
 from matplotlib import pyplot as plt
@@ -31,28 +63,23 @@ if __name__ == '__main__':
     U = 1.
     D = 1.
     R = D/2
-    # x,y = np.linspace(0,1,n),np.linspace(0,1,n)
     grid = Grid(dx = dx,num_points=(n,n,1),origin= (0.,0.,0.),ghost_cells=ghost_cells)
     
     # Runtime params
     viscosity = 1/100
     density = 1.
-    M = 0.2
+    M = 0.1
     cs = U/M
     c2 = cs**2
     
-    # beta = 0.3
-    beta = 1/(U**2/c2)
-    CFL_LIMIT = 0.75
+    CFL_LIMIT = 0.1
     
     d_vis = CFL_LIMIT*float(dx**2/(viscosity))
-    d_conv = CFL_LIMIT*dx/c2
+    d_conv = CFL_LIMIT*dx/cs
     d_acoustic = CFL_LIMIT*dx/(cs + U)
     
-    # print(beta)
     dt = min(d_vis,d_conv,d_acoustic)
-    # dt = min(CFL_LIMIT*float(dx**2/(viscosity)),CFL_LIMIT*dx/(1+1/beta))
-    
+    damping_eps = -0.01*(np.exp( 4*np.log(dx) - np.log(dt))/viscosity) # Use Logs for better numerical stability
     print(dt)
     
     meshgrid = grid.create_meshgrid('node')
@@ -67,20 +94,15 @@ if __name__ == '__main__':
     u_grad = Grad(2,u.shape,dx,ghost_cells=ghost_cells)
     u_step = ForwardEuler(u.dtype)
     
-    
     u_outer = OuterProduct(2,2)
     u_conv_div = Divergence((2,2),u.shape,dx,ghost_cells)
     
+    u_damping = Laplacian(2,dx,ghost_cells)
     
     rho = grid.create_node_field(1)
     rho.fill_(1.)
-    # u.fill_(1.)
-    # print(rho.numpy().squeeze())
     rho_BC = GridBoundary(rho,dx,ghost_cells)
     rho_BC.vonNeumann_BC('ALL',0.)
-    # print(rho_BC.boundary_type)
-    # print(u_BC.boundary_type)
-    # rho_BC.dirichlet_BC('ALL',density)
     p_grad = Grad(1,rho.shape,dx,ghost_cells)
     rho_step = ForwardEuler(rho.dtype)
     
@@ -92,15 +114,12 @@ if __name__ == '__main__':
     momentum_div = Divergence(2,u.shape,dx,ghost_cells)
     momentum = scalarVectorMult(2)
 
-    # wp.vec3f()
-    
     @wp.func
     def get_p_op(rho:vector(1,float),c2:float,density:float):
         rho[0] = c2*(rho[0] - density)
         return rho
     
     get_p = MapWise(get_p_op)
-    
     get_u_from_m = MapWise(lambda m,rho: m/rho[0])
     t= 0
     
@@ -115,14 +134,13 @@ if __name__ == '__main__':
         u_diff = u_lapl(u_fix,viscosity)        
         u_2 = u_outer(m,u_fix)
         u_conv = u_conv_div(u_2)
-        
+        u_damp = u_damping(u_diff,damping_eps)
         #Pressure Gradient
-        # p = cs**2*(rho.view(float) - density).view(rho.dtype)
         p = get_p(rho_fix,c2,density)
         # print(p.numpy().squeeze())
         dp = p_grad(p,-1.)
         # Sum
-        u_F = dp - u_conv + u_diff
+        u_F = dp - u_conv + u_diff + u_damp
         m_next = u_step(m,u_F,dt)    
         rho_next = rho_step(rho_fix,m_div,dt)
         u_next = get_u_from_m(m_next,rho_next)
