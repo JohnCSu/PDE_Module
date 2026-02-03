@@ -10,16 +10,14 @@ class MapWise(Stencil):
     Base_class for Map_wise operations. The first input must be an array and the output array
     is assumed to be the same dtype and shape
     '''
-    def __init__(self,element_op,float_dtype = wp.float32,debug = False):
+    def __init__(self,element_op):
         self.element_op = element_op
-        self.float_dtype = float_dtype
-        super().__init__(None,None,self.float_dtype,debug = False)
+        super().__init__()
         
     @setup(order = 1)
     def initialize_kernel(self,array_A,*args, **kwargs):
-        self._input_dtype = array_A.dtype
-        self._output_dtype = array_A.dtype
-        
+        self.input_dtype = array_A.dtype
+        self.output_dtype = array_A.dtype
         self.output_array = self.create_output_array(array_A)
         self.kernel = wp.map(self.element_op,array_A,*args,out= self.output_array,return_kernel=True)
         

@@ -5,16 +5,14 @@ from .hooks import *
 from pde_module.experimental.stencil_utils import create_stencil_op,eligible_dims_and_shift
 
 
-
-
 class ElementWise(Stencil):
     '''
     Base_class for Element wise operations between two arrays of same size
     '''
-    def __init__(self,element_op,output_dtype,float_dtype = wp.float32,debug = False):
+    def __init__(self,element_op,output_dtype = None):
         self.element_op = element_op
-        self.float_dtype = float_dtype
-        super().__init__(output_dtype,output_dtype,self.float_dtype,debug = False)
+        self.output_dtype = output_dtype
+        super().__init__()
             
     @setup(order = 1)
     def initialize_kernel(self,array_A,array_B,*args, **kwargs):
@@ -22,17 +20,18 @@ class ElementWise(Stencil):
         self.array_B_dtype =array_B.dtype
         self.array_A_dtype =array_A.dtype
         
+        if self.output_dtype is None:
+            self.output_dtype = self.array_A_dtype
+            
         self.kernel = create_ElementOp_kernel(self.element_op,array_A.dtype,array_B.dtype,self.output_dtype)
-        self.output_array = self.create_output_array(array_B)
+        self.output_array = self.create_output_array(array_A,self.output_dtype)
         
     def forward(self, array_A:wp.array,array_B:wp.array,*args,**kwargs):    
         dim = array_A.size
-        x,y = array_A.flatten(),array_B.flatten()
-        z = self.output_array.flatten()
         wp.launch(self.kernel,dim = dim,inputs = [
-               x,y
+               array_A.flatten(),array_B.flatten()
         ],
-        outputs= [z])
+        outputs= [self.output_array.flatten()])
         return self.output_array
 
 

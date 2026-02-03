@@ -13,16 +13,13 @@ class OuterProduct(ElementWise):
     def __init__(self, vec_A:int,vec_B:int, float_dtype=wp.float32):
         element_op = wp.outer
         output_dtype = matrix((vec_A,vec_B),dtype = float_dtype)
-        super().__init__(element_op, output_dtype, float_dtype)
+        super().__init__(element_op,output_dtype=output_dtype)
         self.vec_A = vector(vec_A,float_dtype)
         self.vec_B = vector(vec_B,float_dtype)
     @setup(order = 2)
     def check_same(self,array_A,array_B,*args, **kwargs):
         assert types_equal(array_A.dtype,self.vec_A) and types_equal(array_B.dtype,self.vec_A)
         
-
-
-
 class scalarVectorMult(ElementWise):
     '''
     Multiply a scalar field (i.e. vector with length 1) with a corresponding vector/matrix field (which can be arbitary).
@@ -30,8 +27,12 @@ class scalarVectorMult(ElementWise):
     def __init__(self, outputs, float_dtype=wp.float32):
         output_dtype = dtype_from_shape(outputs,float_dtype)
         element_op = scalarVectorMultiply(output_dtype)
-        super().__init__(element_op, output_dtype, float_dtype)
-
+        super().__init__(element_op,output_dtype)
+        
+    @setup(order = 2)
+    def check_same(self,array_A,array_B,*args, **kwargs):
+        assert array_A.dtype._length_ == 1 and types_equal(array_B.dtype,self.output_dtype)
+        
 
 def scalarVectorMultiply(output_dtype):
     float_type = output_dtype._wp_scalar_type_
