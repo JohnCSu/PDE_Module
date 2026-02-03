@@ -24,32 +24,20 @@ class Stencil:
     - Register stencil like nn.Module (Far into future)
     - Add grad for autodiff
     '''
-    float_dtype: wp.float32 | wp.float64 
     initial:bool = True
-    _debug:bool = False
-    def __init__(self,input_dtype,output_dtype,float_dtype,debug = False):        
-        self._input_dtype = input_dtype
-        self._output_dtype = output_dtype
-        self.float_dtype = float_dtype
-        self._debug = debug
-        
-    @property
-    def debug(self):
-        return self._debug
     
+    def __init__(self,*args,**kwargs):        
+        pass
     
-    @property
-    def output_dtype(self) -> wp_Matrix | wp_Vector:
-        return self._output_dtype
-    
-    @property
-    def input_dtype(self) ->wp_Matrix | wp_Vector :
-        return self._input_dtype
-    
-    
-    def create_output_array(self,input_array:wp.array):
+    @staticmethod
+    def create_output_array(input_array:wp.array,output_dtype = None) -> wp.array:
+        '''
+        Create Output array based on incoming input_array and target output dtype. If output_dtype is None, the input_array dtype is used
+        Note that the array returned is not zeroed
+        '''
         shape = input_array.shape
-        return wp.empty(shape = shape, dtype= self.output_dtype)
+        output_dtype = output_dtype if output_dtype is not None else input_array.dtype
+        return wp.empty(shape = shape, dtype= output_dtype)
     
     
     def forward(self,*args,**kwargs):
@@ -67,9 +55,9 @@ class Stencil:
             for attr in dir(self):
                 method = getattr(self,attr)
                 if hasattr(method,f'_{call}_order') and callable(method):
-                    if getattr(method,'_debug') and self.debug is False:
-                        #Skip append if self.debug is False but method debug is set to true    
-                        continue 
+                    # if getattr(method,'_debug') and self.debug is False:
+                    #     #Skip append if self.debug is False but method debug is set to true    
+                    #     continue 
                     call_list.append(method)
                     
             setattr(self,call_list_name,sorted(call_list,key = lambda x: getattr(x,f'_{call}_order')))
