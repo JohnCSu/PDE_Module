@@ -27,7 +27,7 @@ class DampingLayer(ExplicitUniformGridStencil):
     def get_outer_grid_points(num_layers,grid_shape):
         indices = np.indices(grid_shape,dtype = np.int32)
         indices = np.moveaxis(indices,0,-1).reshape(-1,3)
-        print(indices.shape)
+        
         masks = []
         for i,s in enumerate(grid_shape):
             if s> 1:
@@ -72,7 +72,7 @@ def create_DampingLayer_kernel(input_vector,num_layers,beta,grid_shape,ghost_cel
         # -1 for End of axis to account for the fact indexing starts at 0 and ends n-1
             limits[i] = wp.vec2i([num_layers,(s-1) - num_layers ])
         
-    print(limits)
+    
         
     
     float_type = input_vector._wp_scalar_type_
