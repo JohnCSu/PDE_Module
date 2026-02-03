@@ -7,10 +7,25 @@ from pde_module.experimental.stencil_utils import create_stencil_op,eligible_dim
 
 class Grad(ExplicitUniformGridStencil):
     '''
-    Calculate gradient of a scalar vector or the jacobian of a vector. setting force_matrix = True will always return a matrix dtype
+    Create Grad Stencil of vector field Using Central Based Finite difference.
     
+    If inputs is equal to 1, the default is to set output to a vector, use force_matrix to set output dtype as a matrix instead
+    
+    Args
+    ----------
+    inputs : int 
+        length of vector
+    grid_shape: tuple[int]
+        grid shape, should have length of 3 (with 1 indicating it is not a valid dimension)
+    dx : float 
+        grid spacing
+    ghost_cells : int 
+        number of ghost cells on the grid
+    stencil : vector | None
+        stencil to use for grad. If None, 2nd Order stencil is used
+        
     '''
-    def __init__(self,inputs,grid_shape,dx:float,ghost_cells,force_matrix:bool = False, float_dtype=wp.float32):
+    def __init__(self,inputs:int,grid_shape:tuple[int],dx:float,ghost_cells,stencil = None,force_matrix:bool = False, float_dtype=wp.float32):
         
         self.force_matrix = force_matrix
         dimension = self.calculate_dimension_from_grid_shape(grid_shape)
@@ -34,7 +49,22 @@ class Grad(ExplicitUniformGridStencil):
         self.kernel = create_Grad_kernel(self.input_dtype,self.output_dtype,input_array.shape,self.stencil,self.ghost_cells)
         self.kernel_dim = self.grid_shape_with_no_ghost_cells(input_array.shape,self.ghost_cells)
     
-    def forward(self, input_array,alpha = 1.,*args,**kwargs):    
+    def forward(self, input_array,alpha = 1.):
+        '''
+        Args
+        ---------
+            input_array : wp.array3d 
+                A 3D array with vector of size N to calculate grad from
+            alpha : float
+                proportionality term to scale the laplacian term. Default is 1.
+        Returns
+        ---------
+            output_array : wp.array3d 
+                A 3D array where each element is a matrix or vector.
+                - If vector length (N) == 1: return vector of the dimension (D) of the grid or a (1,D) matrix if force_matrix = True
+                - If vector length (N) > 1: return matrix of size (N,D)
+        '''
+            
         wp.launch(self.kernel,dim = self.kernel_dim,inputs = [
             input_array,
             alpha,   

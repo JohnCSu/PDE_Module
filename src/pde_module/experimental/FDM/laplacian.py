@@ -5,10 +5,25 @@ from warp.types import vector,matrix,type_is_vector,type_is_matrix,types_equal
 # from .types import *
 from ..Stencil.hooks import *
 from pde_module.experimental.stencil_utils import create_stencil_op,eligible_dims_and_shift
+import numpy as np
 
+
+np.concat
 class Laplacian(ExplicitUniformGridStencil):
     '''
-    Calculate Divergence using uniform central differences
+    Create Laplacian Stencil of vector field Using Central Based Finite difference.
+    
+    Args
+    ----------
+    inputs : int 
+        length of vector
+    dx : float 
+        grid spacing
+    ghost_cells : int 
+        number of ghost cells on the grid
+    stencil : vector | None
+        stencil to use for laplacian. If None, 2nd Order stencil is used
+        
     '''
     def __init__(self,inputs:int,dx:float,ghost_cells,stencil = None, float_dtype=wp.float32):
         
@@ -28,7 +43,19 @@ class Laplacian(ExplicitUniformGridStencil):
         self.kernel_dim = self.grid_shape_with_no_ghost_cells(input_array.shape,self.ghost_cells)
     
     
-    def forward(self, input_array,alpha = 1.,*args,**kwargs):    
+    def forward(self, input_array,alpha = 1.,*args,**kwargs):
+        '''
+        Args
+        ---------
+            input_array : wp.array3d 
+                A 3D array with vector dtype to calculate laplacian from
+            alpha : float
+                proportionality term to scale the laplacian term. Default is 1.
+        Returns
+        ---------
+            output_array : wp.array3d 
+                A 3D array with same vector dtype as input_array representing laplacian of each term
+        '''
         wp.launch(self.kernel,dim = self.kernel_dim,inputs = [
             input_array,
             alpha,   

@@ -1,5 +1,4 @@
 from ..Stencil.elementWise import ElementWise
-
 import warp as wp
 from warp.types import vector,matrix,types_equal
 from ..Stencil.hooks import *

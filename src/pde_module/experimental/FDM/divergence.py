@@ -8,9 +8,23 @@ from collections.abc import Iterable
 
 class Divergence(ExplicitUniformGridStencil):
     '''
-    Calculate Divergence of a vector field of size D or matrix of shape N,D where D is the dimension of the grid
+    Create Divergence Stencil of vector field Using Central Based Finite difference.
     
-    div_type: vector or tensor
+    Args
+    ----------
+    inputs : int | tuple[int]
+        input shape: 
+            - If int, then input is a vector is assumed. vector length must be same as grid dimension
+            - If tuple[int] then matrix is assumed. Number of columns must be same as grid dimension
+    grid_shape: tuple[int]
+        grid shape, should have length of 3 (with 1 indicating it is not a valid dimension)
+    dx : float 
+        grid spacing
+    ghost_cells : int 
+        number of ghost cells on the grid
+    stencil : vector | None
+        stencil to use for laplacian. If None, 2nd Order stencil is used
+        
     '''
     def __init__(self,inputs:int | tuple,grid_shape,dx:float,ghost_cells,stencil = None, float_dtype=wp.float32):
         
@@ -54,7 +68,21 @@ class Divergence(ExplicitUniformGridStencil):
         self.kernel = create_Divergence_kernel(self.input_dtype,self.output_dtype,input_array.shape,self.stencil,self.ghost_cells)
         self.kernel_dim = self.grid_shape_with_no_ghost_cells(input_array.shape,self.ghost_cells)
     
-    def forward(self, input_array,alpha = 1.,*args,**kwargs):    
+    def forward(self, input_array,alpha = 1.,*args,**kwargs):
+        '''
+        Args
+        ---------
+            input_array : wp.array3d 
+                A 3D array with that matches the input shape (either vector or matrix)
+            alpha : float
+                proportionality term to scale the laplacian term. Default is 1.
+        Returns
+        ---------
+            output_array : wp.array3d 
+                A 3D array of vectors depending on input dtype:
+                - If vector input: output dtype is a vector of length 1 (Scalar)
+                - If matrix output of size (N,D): return vector of size (D,)
+        '''    
         wp.launch(self.kernel,dim = self.kernel_dim,inputs = [
             input_array,
             alpha,   
