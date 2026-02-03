@@ -10,15 +10,25 @@ class ExplicitUniformGridStencil(Stencil):
     Class For Stencil on Uniform Grids for AoS grids
     '''
     def __init__(self, inputs:int|list[int],outputs:int|list[int],dx:float,ghost_cells = 0,float_dtype:wp.float32|wp.float64 = wp.float32):
+        super().__init__()
         self.dx = float_dtype(dx)
         self._inputs = tuplify(inputs)
         self._outputs = tuplify(outputs)
         self.ghost_cells = ghost_cells
-        input_dtype = self._get_dtype_from_shape(self.inputs,float_dtype)
-        output_dtype = self._get_dtype_from_shape(self.outputs,float_dtype)
-        super().__init__(input_dtype,output_dtype,float_dtype)
+        
+        self.float_dtype = float_dtype
+        self._input_dtype = self._get_dtype_from_shape(self.inputs,float_dtype)
+        self._output_dtype = self._get_dtype_from_shape(self.outputs,float_dtype)
+        
         
     
+    @property
+    def output_dtype(self) -> wp_Matrix | wp_Vector:
+        return self._output_dtype
+    
+    @property
+    def input_dtype(self) ->wp_Matrix | wp_Vector :
+        return self._input_dtype
     
     @property
     def inputs(self) -> tuple[int]:
@@ -105,7 +115,8 @@ class ExplicitUniformGridStencil(Stencil):
     
     @setup(order = -1)
     def initialize_array(self,input_array,*args,**kwargs):
-        self.output_array = self.create_output_array(input_array)
+        self.output_array = self.create_output_array(input_array,self.output_dtype)
+    
     
     @setup(order = 1)
     def initialize_kernel(self,input_array,*args,**kwargs):
