@@ -25,12 +25,12 @@ CFL_LIMIT = 0.5 - constant to ensure CFL is not violated set to 0.5
 import numpy as np
 import warp as wp
 from matplotlib import pyplot as plt
-from pde_module.experimental.grid import Grid
-from pde_module.experimental.FDM.laplacian import Laplacian
-from pde_module.experimental.time_integrators import ForwardEuler
-from pde_module.experimental.FDM.gridBoundary import GridBoundary
-from pde_module.experimental.FDM.grad import Grad
-from pde_module.experimental.FDM.divergence import Divergence
+from pde_module.geometry.grid import Grid
+from pde_module.FDM.laplacian import Laplacian
+from pde_module.time_step.forwardEuler import ForwardEuler
+from pde_module.FDM.gridBoundary import GridBoundary
+from pde_module.FDM.grad import Grad
+from pde_module.FDM.divergence import Divergence
 
 wp.init()
 # wp.config.mode = "debug"
@@ -59,7 +59,7 @@ if __name__ == '__main__':
     u_lapl = Laplacian(2,dx,ghost_cells)
     u_grad = Grad(2,u.shape,dx,ghost_cells=ghost_cells)
     
-    u_div = Divergence('vector',u.shape,dx,ghost_cells)
+    u_div = Divergence(2,u.shape,dx,ghost_cells)
     u_step = ForwardEuler(u.dtype)
     
     p = grid.create_node_field(1)

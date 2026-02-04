@@ -1,10 +1,8 @@
-# from .stencil import Stencil
 from .ExplicitUniformGridStencil import ExplicitUniformGridStencil
 import warp as wp
 from warp.types import vector,matrix,type_is_vector,type_is_matrix,types_equal
-# from .types import *
-from ..Stencil.hooks import *
-from pde_module.experimental.stencil_utils import create_stencil_op,eligible_dims_and_shift
+from ..stencil.hooks import *
+from pde_module.stencil.utils import create_stencil_op,eligible_dims_and_shift
 import numpy as np
 
 

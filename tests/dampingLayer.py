@@ -1,7 +1,7 @@
 import numpy as np
 import warp as wp
 from matplotlib import pyplot as plt
-from pde_module.experimental.grid import Grid
+from pde_module.geometry.grid import Grid
 from pde_module.experimental.FDM.dampingLayer import DampingLayer
         
 

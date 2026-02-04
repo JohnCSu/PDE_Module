@@ -1,9 +1,9 @@
 import numpy as np
 import warp as wp
 from matplotlib import pyplot as plt
-from pde_module.experimental.grid import Grid
+from pde_module.geometry.grid import Grid
 from pde_module.experimental.FDM.laplacian import Laplacian
-from pde_module.experimental.time_integrators import ForwardEuler
+from pde_module.Stencil.time_integrators import ForwardEuler
 from pde_module.experimental.FDM.gridBoundary import GridBoundary
 from pde_module.experimental.FDM.immersedBoundary import ImmersedBoundary
 from pde_module.experimental.FDM.grad import Grad

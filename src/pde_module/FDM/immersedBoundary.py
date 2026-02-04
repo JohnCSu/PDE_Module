@@ -1,10 +1,10 @@
-from .ExplicitUniformGridStencil import ExplicitUniformGridStencil
 from .boundary import Boundary
+import numpy as np
 import warp as wp
 from warp.types import vector,matrix,type_is_vector
-from ..Stencil.hooks import *
-import numpy as np
-from ..stencil_utils import create_stencil_op,eligible_dims_and_shift
+from ..stencil.hooks import *
+from pde_module.stencil.utils import create_stencil_op,eligible_dims_and_shift,create_tensor_divergence_op
+
 
 class ImmersedBoundary(Boundary):
     '''

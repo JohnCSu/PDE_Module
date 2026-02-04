@@ -1,8 +1,8 @@
-from ..Stencil.stencil import Stencil
 import warp as wp
 from warp.types import vector,matrix
 from ..utils import *
-from ..Stencil.hooks import *
+from ..stencil.stencil import Stencil
+from ..stencil.hooks import *
 from collections.abc import Iterable
 
 class ExplicitUniformGridStencil(Stencil):

@@ -1,6 +1,6 @@
 import warp as wp
 from warp import types
-from ..dummy_types import *
+from ..utils.dummy_types import *
 
 from collections.abc import Iterable
 def tuplify(x:Any):

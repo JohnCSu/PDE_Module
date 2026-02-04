@@ -14,6 +14,7 @@ def tuplify(x:Any):
     
 
 def dtype_from_shape(shape,float_dtype):
+    '''Based on the shape provided return a vector or matrix, if int or tuple of a single element return vector, if tuple of size 2 return matrix'''
     if isinstance(shape,Iterable):
             assert all([isinstance(x,int) for x in shape]), 'contents in input/output must be int only'
     else:

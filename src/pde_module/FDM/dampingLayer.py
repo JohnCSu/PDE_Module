@@ -1,10 +1,10 @@
 import warp as wp
 import numpy as np
 from .ExplicitUniformGridStencil import ExplicitUniformGridStencil
-from warp.types import vector,matrix,type_is_vector,type_is_matrix,types_equal
-from ..Stencil.hooks import *
-from pde_module.experimental.stencil_utils import create_stencil_op,eligible_dims_and_shift,create_tensor_divergence_op
-from pde_module.experimental.constants import INT32_MAX
+from warp.types import vector,matrix
+from ..stencil.hooks import *
+from pde_module.stencil.utils import eligible_dims_and_shift
+from pde_module.utils.constants import INT32_MAX
 from collections.abc import Iterable
 
 

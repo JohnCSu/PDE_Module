@@ -13,24 +13,21 @@ du/dt grad_u * u =  d^2u/dx^2 + d^2u/dy^2 - dp/dx
 
 dp/dt +beta * div(u) = 0
 
-
 Constants to tune:
 dt - time step. Simple Euler Step is used
 beta =0.3  ACM term, higher means faster convergence but instability (akin to increasing time stepping)
 CFL_LIMIT = 0.5 - constant to ensure CFL is not violated set to 0.5
 
 '''
-
-
 import numpy as np
 import warp as wp
 from matplotlib import pyplot as plt
-from pde_module.experimental.grid import Grid
-from pde_module.experimental.FDM.laplacian import Laplacian
-from pde_module.experimental.time_integrators import ForwardEuler
-from pde_module.experimental.FDM.gridBoundary import GridBoundary
-from pde_module.experimental.FDM.grad import Grad
-from pde_module.experimental.FDM.divergence import Divergence
+from pde_module.geometry.grid import Grid
+from pde_module.FDM.laplacian import Laplacian
+from pde_module.time_step.forwardEuler import ForwardEuler
+from pde_module.FDM.gridBoundary import GridBoundary
+from pde_module.FDM.grad import Grad
+from pde_module.FDM.divergence import Divergence
 
 wp.init()
 # wp.config.mode = "debug"

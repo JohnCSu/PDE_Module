@@ -1,7 +1,7 @@
-from ..Stencil.elementWise import ElementWise
+from ..stencil.elementWise import ElementWise
 import warp as wp
 from warp.types import vector,matrix,types_equal
-from ..Stencil.hooks import *
+from ..stencil.hooks import *
 from ..utils import dtype_from_shape
 
 

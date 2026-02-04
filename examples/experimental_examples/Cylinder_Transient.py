@@ -42,20 +42,21 @@ Features Used:
 import numpy as np
 import warp as wp
 from matplotlib import pyplot as plt
-from pde_module.experimental.grid import Grid
-from pde_module.experimental.FDM.laplacian import Laplacian
-from pde_module.experimental.time_integrators import ForwardEuler
-from pde_module.experimental.FDM.gridBoundary import GridBoundary
-
-from pde_module.experimental.FDM.immersedBoundary import ImmersedBoundary
-from pde_module.experimental.FDM.grad import Grad
-from pde_module.experimental.FDM.divergence import Divergence
-from pde_module.experimental.FDM.elementWiseOps import scalarVectorMult,OuterProduct
-from pde_module.experimental.FDM.dampingLayer import DampingLayer
-from pde_module.experimental.Stencil.mapWise import MapWise
-
-from warp.types import vector,matrix,types_equal
-
+import numpy as np
+import warp as wp
+from matplotlib import pyplot as plt
+from pde_module.geometry import Grid
+from pde_module.FDM import (Laplacian,
+                            Grad,
+                            GridBoundary,
+                            Divergence,
+                            DampingLayer,
+                            ImmersedBoundary,
+                            scalarVectorMult,
+                            OuterProduct)
+from pde_module.time_step import ForwardEuler 
+from pde_module.stencil import MapWise
+from warp.types import vector
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 

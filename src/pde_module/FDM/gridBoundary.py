@@ -1,9 +1,8 @@
-from .ExplicitUniformGridStencil import ExplicitUniformGridStencil
 from .boundary import Boundary
 import warp as wp
 from warp.types import vector,matrix,type_is_vector
 # from .types import *
-from ..Stencil.hooks import *
+from ..stencil.hooks import *
 import numpy as np
 
 class GridBoundary(Boundary):
