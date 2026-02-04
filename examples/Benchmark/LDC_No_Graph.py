@@ -1,3 +1,26 @@
+'''
+LID DRIVEN CAVITY
+
+This examples shows solving 2D Navier Stokes in the classic LDC example using the Artificial Compressibility Method for explicit CFD. 
+
+No GRAPH CAPTURE IS USED HERE. Compare with examples/Benchmark/LDC_Graph_Capture.py to see how graph capture can significantly speed up runtimes.
+
+Domain: 101 x 101 grid nodes
+Re: 100 (All other constant are 1)
+
+Equations:
+
+du/dt grad_u * u =  d^2u/dx^2 + d^2u/dy^2 - dp/dx
+
+dp/dt +beta * div(u) = 0
+
+
+Constants to tune:
+dt - time step. Simple Euler Step is used
+beta =0.3  ACM term, higher means faster convergence but instability (akin to increasing time stepping)
+CFL_LIMIT = 0.5 - constant to ensure CFL is not violated set to 0.5
+
+'''
 
 import numpy as np
 import warp as wp
