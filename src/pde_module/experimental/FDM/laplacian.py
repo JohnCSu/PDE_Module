@@ -25,7 +25,7 @@ class Laplacian(ExplicitUniformGridStencil):
         stencil to use for laplacian. If None, 2nd Order stencil is used
         
     '''
-    def __init__(self,inputs:int,dx:float,ghost_cells,stencil = None, float_dtype=wp.float32):
+    def __init__(self,inputs:int,dx:float,ghost_cells:int,stencil = None, float_dtype=wp.float32):
         
         if stencil is None:
             self.stencil = wp.types.vector(3,dtype = float_dtype)([1./dx**2,-2./dx**2,1/dx**2])

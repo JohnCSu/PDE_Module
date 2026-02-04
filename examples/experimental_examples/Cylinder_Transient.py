@@ -135,7 +135,6 @@ if __name__ == '__main__':
     
     u_damping = Laplacian(2,dx,ghost_cells)
     
-    
     rho = grid.create_node_field(1)
     rho.fill_(1.)
     
