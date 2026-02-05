@@ -1,14 +1,41 @@
 from .ExplicitUniformGridStencil import ExplicitUniformGridStencil
 import warp as wp
 from warp.types import vector,matrix,type_is_vector
+from ..utils.constants import VON_NEUMANN,DIRICHLET
 # from .types import *
 from ..stencil.hooks import *
 import numpy as np
 
 class Boundary(ExplicitUniformGridStencil):
     '''
-    Base Class for Boundary Methods. For users, they need to add methods to calculate the indices after which they can pass these
-    indices to define_boundary_value_and_type_arrays to create the necessary boundary value and type arrays
+    Base Class for Boundary Methods
+    
+    Args
+    ----------
+    field : wp.array3d
+        array that the GridBoundary will apply to
+    dx : float 
+        grid spacing
+    ghost_cells : int 
+        number of ghost cells on the grid
+
+    ---------
+    
+    If you are inheriting this class, you need to implement how you generate the required indices (i,j,k) that will be used in the boundary.
+    Then call the define_boundary_value_and_type_arrays() function to generate the boundary value and type arrays
+    
+    Each respective boundary group can be accessed with the strings:
+    {-X,+X,-Y,+Y,-Z,+Z}
+    
+    The group string ALL will apply a BC to all boundary nodes
+    
+    The Following BC are currently implemented:
+        - Dirichlet
+        - Von Neumann
+        
+    For vector fields where the length matches the dimension, there are some BC convience methods:
+        - No slip (all set to 0)
+        - Impermeable (velocity normal is set to 0, orthogonal Von neumann = 0)
     '''
     boundary_type: np.ndarray
     boundary_value: np.ndarray
@@ -80,8 +107,30 @@ class Boundary(ExplicitUniformGridStencil):
         self.boundary_value[face_ids,outputs_ids] = value
         
     def dirichlet_BC(self,group:str|int|np.ndarray|list|tuple,value:float,outputs_ids:int|np.ndarray|list|tuple|None = None):
-        self.set_BC(group,value,1,outputs_ids)        
+        self.set_BC(group,value,DIRICHLET,outputs_ids)        
     
     def vonNeumann_BC(self,group:str|int|np.ndarray|list|tuple,value:float,outputs_ids:int|np.ndarray|list|tuple|None = None):
-        self.set_BC(group,value,2,outputs_ids)
+        self.set_BC(group,value,VON_NEUMANN,outputs_ids)
+    
+    
+    def no_slip(self,group:str|int|np.ndarray|list|tuple):
+        '''
+        If the input dtype matches the vector length, assumes it is a velocity vector
+        '''
+        assert self.inputs[0] == self.dimension, 'Valid only when input_dtype is vector with same length equal to dimension of field'
+        self.dirichlet_BC(group,0.)
+    
+    def impermeable(self,group):
+        '''
+        for side walls set normal velocity to zero
+        '''
+        assert self.inputs[0] == self.dimension, 'Valid only when input_dtype is vector with same length equal to dimension of field'
         
+        assert group in self.groups.keys() and group in {'-X','+X','-Y','+Y','-Z','+Z'}, "{'-X','+X','-Y','+Y','-Z','+Z'} are valid groups"
+        
+        axis_name = group[-1]
+        indices = ['X','Y','Z']
+        axis = indices.index(axis_name)
+        self.vonNeumann_BC(group,0.) # Set all to vonneumann
+        self.dirichlet_BC(group,0.,axis) # Set corresponding axis to dirichlet
+    

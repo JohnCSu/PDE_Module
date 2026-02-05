@@ -10,10 +10,26 @@ from collections.abc import Iterable
 
 class DampingLayer(ExplicitUniformGridStencil):
     '''
-    Apply a damping layer around the grid
+    Apply a damping layer num_layers thick around the outer layers of the grid
     
-    Calculates:
-    -damp_factor*(input_array[grid_point] - farfield_condition)
+    Args
+    ----------
+    inputs : int | tuple[int]
+        input shape: 
+            - If int, then input is a vector is assumed. vector length must be same as grid dimension
+            - If tuple[int] then matrix is assumed. Number of columns must be same as grid dimension
+    grid_shape: tuple[int]
+        grid shape, should have length of 3 (with 1 indicating it is not a valid dimension)
+    dx : float 
+        grid spacing
+    ghost_cells : int 
+        number of ghost cells on the grid
+    float_dtype : wp.float32 | wp.float64
+        float type. default is wp.float32
+    
+    Note the sign of the output is already -ve:
+    
+    -sigma*(input_array[grid_point] - farfield_condition)
     
     '''
     def __init__(self,inputs:int | tuple,num_layers,beta,grid_shape,dx:float,ghost_cells, float_dtype=wp.float32):
@@ -25,6 +41,10 @@ class DampingLayer(ExplicitUniformGridStencil):
         
     @staticmethod
     def get_outer_grid_points(num_layers,grid_shape):
+        '''
+        Get the num_layers of outer points of a grid
+        '''
+        
         indices = np.indices(grid_shape,dtype = np.int32)
         indices = np.moveaxis(indices,0,-1).reshape(-1,3)
         
@@ -35,10 +55,7 @@ class DampingLayer(ExplicitUniformGridStencil):
                 a2 = indices[:,i] >= (s-num_layers)
                 
                 masks.append(np.logical_or(a1,a2))
-        
-        
-        # masks = np.logical_or(*masks)
-        
+                
         mask = masks[0]
         for m in masks[1:]:
             mask = np.logical_or(mask,m)
@@ -56,12 +73,26 @@ class DampingLayer(ExplicitUniformGridStencil):
         self.output_array.zero_()
     
     def forward(self,input_array,farfield_condition,sigma_max,*args, **kwargs):
+        '''
+        Args
+        ---------
+            input_array : wp.array3d 
+                A 3D array with that matches the input shape (either vector or matrix)
+            farfield_condition: wp.vector | wp.matrix
+                farfield condition the damping layers force the solution to match
+            sigma_max : float
+                proportionality term to scale the damping layer. Recommended is alpha/dt where alpha ~ 0.05 - 0.5
+        Returns
+        ---------
+            output_array : wp.array3d 
+                A 3D array with same shape and dtype as the input_array
+        '''    
         wp.launch(self.kernel,dim = len(self.warp_outer_points),inputs = [input_array,self.warp_outer_points,farfield_condition,sigma_max],outputs=[self.output_array])
         return self.output_array
         
     
 
-def create_DampingLayer_kernel(input_vector,num_layers,beta,grid_shape,ghost_cells):
+def create_DampingLayer_kernel(input_dtype ,num_layers,beta,grid_shape,ghost_cells):
     eligible_dims,_ = eligible_dims_and_shift(grid_shape,ghost_cells)
     dimension = len(eligible_dims)
     limits = matrix(shape = (3,2), dtype= int)()
@@ -71,11 +102,8 @@ def create_DampingLayer_kernel(input_vector,num_layers,beta,grid_shape,ghost_cel
         if s > 1:
         # -1 for End of axis to account for the fact indexing starts at 0 and ends n-1
             limits[i] = wp.vec2i([num_layers,(s-1) - num_layers ])
-        
-    
-        
-    
-    float_type = input_vector._wp_scalar_type_
+
+    float_type = input_dtype ._wp_scalar_type_
     grid_shape_vec = wp.vec3i(grid_shape)
     
     @wp.func
@@ -92,11 +120,11 @@ def create_DampingLayer_kernel(input_vector,num_layers,beta,grid_shape,ghost_cel
     
     @wp.kernel
     def DampingLayer(
-        input_array:wp.array3d(dtype = input_vector),
+        input_array:wp.array3d(dtype = input_dtype ),
         grid_points:wp.array(dtype = wp.vec3i),
-        farfield_condition : input_vector,
+        farfield_condition : input_dtype ,
         sigma_max:float_type,
-        output_array:wp.array3d(dtype = input_vector), 
+        output_array:wp.array3d(dtype = input_dtype ), 
     ):
         tid = wp.tid()
         

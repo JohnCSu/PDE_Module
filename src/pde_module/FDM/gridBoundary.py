@@ -6,7 +6,34 @@ from ..stencil.hooks import *
 import numpy as np
 
 class GridBoundary(Boundary):
-    # def __init__(self,field,dx,ghost_cells:int):
+    '''
+    Apply a Boundary Conditions around the perimeter of the Grid, taking into account ghost cells. Second Order Only
+    
+    Currently only implemented for vector arrays
+    
+    Args
+    ----------
+    field : wp.array3d
+        array that the GridBoundary will apply to
+    dx : float 
+        grid spacing
+    ghost_cells : int 
+        number of ghost cells on the grid
+
+    ---------
+    Each respective boundary can be accessed with the strings:
+    {-X,+X,-Y,+Y,-Z,+Z}
+    
+    The group string ALL will apply a BC to all boundary nodes
+    
+    The Following BC are currently implemented:
+        - Dirichlet
+        - Von Neumann
+        
+    For vector fields where the length matches the dimension, there are some BC convience methods:
+        - No slip (all set to 0)
+        - Impermeable (velocity normal is set to 0, orthogonal Von neumann = 0)
+    '''
     def __init__(self,field,dx,ghost_cells:int):
         super().__init__(field,dx,ghost_cells)        
         self.define_boundary_xyz_indices()
@@ -73,27 +100,6 @@ class GridBoundary(Boundary):
                 self.boundary_interior[index,i] = sign
         
     
-    def no_slip(self,group:str|int|np.ndarray|list|tuple):
-        '''
-        If the input dtype matches the vector length, assumes it is a velocity vector
-        '''
-        assert self.inputs[0] == self.dimension, 'Valid only when input_dtype is vector with same length equal to dimension of field'
-        self.dirichlet_BC(group,0.)
-    
-    def impermeable(self,group):
-        '''
-        for side walls set normal velocity to zero
-        '''
-        assert self.inputs[0] == self.dimension, 'Valid only when input_dtype is vector with same length equal to dimension of field'
-        
-        assert group in self.groups.keys() and group in {'-X','+X','-Y','+Y','-Z','+Z'}, "{'-X','+X','-Y','+Y','-Z','+Z'} are valid groups"
-        
-        axis_name = group[-1]
-        indices = ['X','Y','Z']
-        axis = indices.index(axis_name)
-        self.vonNeumann_BC(group,0.) # Set all to vonneumann
-        self.dirichlet_BC(group,0.,axis) # Set corresponding axis to dirichlet
-    
     @setup
     def to_warp(self,*args,**kwargs):
         self.warp_boundary_xyz_indices = wp.array(self.boundary_xyz_indices,dtype=wp.vec3i)
@@ -110,7 +116,19 @@ class GridBoundary(Boundary):
         wp.copy(self.output_array,input_array)
         
     def forward(self, input_array, *args, **kwargs):
-        # wp.copy(self.output_array,input_array)
+        '''
+        Args
+        ---------
+            input_array : wp.array3d
+                Apply BC to 
+        Returns
+        ---------
+            output_array : wp.array3d 
+                A 3D array with same shape and dtype as the input_array
+                
+        
+        Note that a copy is performed between the input and output_array before the forward call
+        '''    
         wp.launch(
             kernel=self.kernel,
             dim = (len(self.boundary_ids),*self.input_dtype_shape),

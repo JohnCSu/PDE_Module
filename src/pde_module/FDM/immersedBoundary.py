@@ -5,22 +5,48 @@ from warp.types import vector,matrix,type_is_vector
 from ..stencil.hooks import *
 from pde_module.stencil.utils import create_stencil_op,eligible_dims_and_shift,create_tensor_divergence_op
 
-
+np.concatenate
 class ImmersedBoundary(Boundary):
     '''
-    Module for objects inside the domain. Only First and Second order approximations availiable
+    Define Solid regions inside the grid domain and define behaviour at the solid-fluid interface
+    
+    Currently only implemented for vector arrays and staircase appoximation (First order)
+    
+    Args
+    ----------
+    field : wp.array3d
+        array that the GridBoundary will apply to
+    dx : float 
+        grid spacing
+    ghost_cells : int 
+        number of ghost cells on the grid
+
+    Usage
+    ---------
+    - ONLY the ALL group is availiable by default (This will be lifted later hopefully)
+    - Use ImmersedBoundary.from_bool_func() is the current only method to define solid regions
+    - Once the final geometry is defined, call `finalize()` which allows users to start applying boundary conditions
+    
+    The Following BC are currently implemented:
+        - Dirichlet
+        - Von Neumann
+        
+    For vector fields where the length matches the dimension, there are some BC convience methods:
+        - No slip (all set to 0)
+        - Impermeable (velocity normal is set to 0, orthogonal Von neumann = 0)
     '''
-    # def __init__(self,field,dx,ghost_cells:int):
-    def __init__(self,field,dx,ghost_cells:int):
+    def __init__(self,field:wp.array,dx:float,ghost_cells:int):
         super().__init__(field,dx,ghost_cells)
         self.bitmask = np.zeros(field.shape,dtype = np.int8)
         
     
     def from_bool_func(self,fn,meshgrid):
         '''
-        Provide a func such that False is given for values outside and True for values inside the boundary    
+        Provide a func such that 0 is given for values outside and 1 for values inside the boundary (i.e solid cell)
         e.g.
-        f(x,y) -> sqrt(x**2+y**2) < R
+        f(x,y,z) -> sqrt(x**2+y**2) < R
+        
+        here x,y,z are each the corresponding meshgrids of the grid
         '''
         # We have a 3,grid_shape array
         assert meshgrid[0].shape == self.grid_shape
@@ -80,7 +106,6 @@ class ImmersedBoundary(Boundary):
         self.warp_fluid_neighbors = wp.array(self.fluid_neighbors,dtype=adj_matrix)
         self.warp_boundary_type =wp.array(self.boundary_type)
         self.warp_boundary_value = wp.array(self.boundary_value,dtype = self.input_dtype)
-        
         
         self.warp_interior_solids = wp.array(self.interior_solids,dtype=wp.vec3i)
         self.warp_interior_solid_indices = [wp.array(arr,dtype = int) for arr in np.moveaxis(self.interior_solids,0,-1)]

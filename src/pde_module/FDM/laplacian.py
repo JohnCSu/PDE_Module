@@ -5,8 +5,6 @@ from ..stencil.hooks import *
 from pde_module.stencil.utils import create_stencil_op,eligible_dims_and_shift
 import numpy as np
 
-
-np.concat
 class Laplacian(ExplicitUniformGridStencil):
     '''
     Create Laplacian Stencil of vector field Using Central Based Finite difference.
