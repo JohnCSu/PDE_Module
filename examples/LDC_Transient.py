@@ -175,9 +175,12 @@ if __name__ == '__main__':
         # step += 1
         im.set_data(u_mag.T)
         return [im]
+      
+    step_per_frame = 750
+    ani = FuncAnimation(fig,render , frames= 300, interval=50, repeat=False,fargs = [step_per_frame,dt])
         
-    step_per_frame = 1000
-    ani = FuncAnimation(fig,render , frames= 125, interval=50, repeat=False,fargs = [step_per_frame,dt])
+    # step_per_frame = 1000
+    # ani = FuncAnimation(fig,render , frames= 125, interval=50, repeat=False,fargs = [step_per_frame,dt])
     # ani.save('LDC_Transient.gif', writer='ffmpeg', fps=30,dpi=60)
     plt.show()
    

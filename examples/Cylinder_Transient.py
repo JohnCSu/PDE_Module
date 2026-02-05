@@ -1,7 +1,7 @@
 '''
-Transient Flow Around A Cylinder Re = 100
+Transient Flow Around A Cylinder Re = 500
 
-Using weakly compressible flow, we demonstrate the classic vortex shedding over a cylinder. 
+Using weakly compressible flow, we demonstrate the classic vortex shedding over a cylinder. Re 500 chosen to quickly show the vortex shedding
 
 The 2 fields to solve are the velocity and density (rho) fields.
 
@@ -24,6 +24,7 @@ Geometry Params:
 H,L = 12x48
 R = 1
 n = 201
+D = 1  (Diamter of cylinder)
 Runtime Params
 U = 1.
 Re = 100
@@ -244,9 +245,9 @@ if __name__ == '__main__':
         print(f'frame {frame} Done!')
         return [im]
         
-    # Setting Are optimised for viewing! Gif Settings =
-    step_per_frame = 1500
-    ani = FuncAnimation(fig,render , frames= 150, interval=100, repeat=False,fargs = [step_per_frame,dt])
-    ani.save('Transient_Cylinder.gif', writer='ffmpeg', fps=20,dpi=60)
-    # plt.show()
+    # Setting Are optimised for viewing! Gif Settings step_per_frame = 1500, frames = 150
+    step_per_frame = 400
+    ani = FuncAnimation(fig,render , frames= 450, interval=25, repeat=False,fargs = [step_per_frame,dt])
+    # ani.save('Transient_Cylinder.gif', writer='ffmpeg', fps=20,dpi=60)
+    plt.show()
     
