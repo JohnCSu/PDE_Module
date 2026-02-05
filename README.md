@@ -18,6 +18,18 @@ Of course there are limitations and headaches with using a DSL (error tracebacks
 
 The Goal is to create a system similar to nn.Module in pytorch: You construct simulations by combining different modules rather than having to directly keep track of all the tensors/arrays needed. Think of how modules in pytorch automatically keep track of internal buffers and tensors, and all the user needs to do is provide the input and output.
 
+# Examples!
+
+<div style="display: flex; gap: 20px;">
+  <figure style="text-align: center;">
+    <img src="src/images/LDC_Transient.gif" width="100%">
+    <figcaption><b>Transient LDC Re = 100</b></figcaption>
+  </figure>
+  <figure style="text-align: center;">
+    <img src="src\images\Transient_Cylinder.gif" width="100%">
+    <figcaption><b>Transient Cylinder Re = 100 </b></figcaption>
+  </figure>
+</div>
 
 # Features
 
@@ -32,21 +44,11 @@ This is unlike ML frameworks which implicitly allocate new arrays each time you 
 ## Stencils are Functional-esque
 All Stencil currently implemented do not do inplace modifications on the incoming array and always modify the output array (including applying boundary conditions which uses a copy first!). This makes it easier to reason on the behaviour of your simulation but increases memory usage.
 
-## Hooks and semantics
-Similar to pytorch's nn.Module, you can create a simulation by via the `Stencil` class. The `Stencil` class provides several hooks and conviences for creating your own kernel.
-
-The `forward` method is used to place your computation logic. You can define functions that have the following behaviour.
-
-### Hooks
-We have the following hooks one can decorate over methods:
-
-1. `@setup` - On initial activation, useful for setting up kernels, array allocation or error checking etc
-2. `@before_forward` - Any sort of preforward behaviour (e.g. zeroing an array)
-3. `@after_forward` - Any sort of cleanup behaviour
-
 # Implemented
 
 Currently only AoS (Array of Structure) for Finite difference on a structured grid has been implemented.
+
+
 
 # To Add
 - Finite Volume on Uniform Grid
