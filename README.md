@@ -20,16 +20,17 @@ The Goal is to create a system similar to nn.Module in pytorch: You construct si
 
 # Examples!
 
-<div style="display: flex; gap: 20px;">
-  <figure style="text-align: center;">
-    <img src="src/images/LDC_Transient.gif" width="100%">
-    <figcaption><b>Transient LDC Re = 100</b></figcaption>
-  </figure>
-  <figure style="text-align: center;">
-    <img src="src\images\Transient_Cylinder.gif" width="100%">
-    <figcaption><b>Transient Cylinder Re = 100 </b></figcaption>
-  </figure>
-</div>
+<table>
+  <tr>
+    <td align="center"><img src="src/images/LDC_Transient.gif" width="300"></td>
+    <td align="center"><img src="src/images/Transient_Cylinder.gif" width="300"></td>
+  </tr>
+  <tr>
+    <td align="center">Transient LDC Re=100</td>
+    <td align="center">Transient Cylinder Flow Re=500</td>
+  </tr>
+</table>
+
 
 # Features
 
