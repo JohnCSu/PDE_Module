@@ -1,5 +1,9 @@
 '''
-Transient lid driven cavity for Re = 100
+Transient lid driven cavity for Re = 100 With RungeKatta 2nd order time stepping.
+
+Rungekatta uses 2 evaulations per time step but is o(dt**2) accurate, making it worth while compared to the the standard forward euler step.
+In this example, the CFL limit can be increased to 0.8 with no issues compared to the forward euler where the max time step is around a CFL limit
+of 0.2. This is about a 3-4x increase in time stepping for the same number of evaluations 
 
 Using weakly compressible flow, we demonstrate the LDC problem as a time dependent flow.
 
@@ -47,7 +51,7 @@ from warp.types import vector,matrix,types_equal
 
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
-
+from pde_module.time_step.rungeKatta import RungeKatta2
 
 
 
@@ -55,6 +59,7 @@ wp.init()
 # wp.config.mode = "debug"
 
 if __name__ == '__main__':
+    np.set_printoptions(precision=2,suppress= False)
     n = 201
     L = 1
     dx = L/(n-1)
@@ -71,7 +76,7 @@ if __name__ == '__main__':
     cs = U/M
     c2 = cs**2
     
-    CFL_LIMIT = 0.2
+    CFL_LIMIT = 0.80
     
     d_vis = CFL_LIMIT*float(dx**2/(viscosity))
     d_conv = CFL_LIMIT*dx/cs
@@ -83,15 +88,14 @@ if __name__ == '__main__':
     
     meshgrid = grid.create_meshgrid('node')
     # Define Modules
-    
     u = grid.create_node_field(2)
+    
     u_BC = GridBoundary(u,dx,ghost_cells)
     u_BC.dirichlet_BC('ALL',0.)
     u_BC.dirichlet_BC('+Y',1.,0)
     
     u_lapl = Laplacian(2,dx,ghost_cells)
     u_grad = Grad(2,u.shape,dx,ghost_cells=ghost_cells)
-    u_step = ForwardEuler(u.dtype)
     
     u_outer = OuterProduct(2,2)
     u_conv_div = Divergence((2,2),u.shape,dx,ghost_cells)
@@ -103,12 +107,6 @@ if __name__ == '__main__':
     rho_BC = GridBoundary(rho,dx,ghost_cells)
     rho_BC.vonNeumann_BC('ALL',0.)
     p_grad = Grad(1,rho.shape,dx,ghost_cells)
-    rho_step = ForwardEuler(rho.dtype)
-    
-    np.set_printoptions(precision=3,suppress= False)
-    p_grad = Grad(1,rho.shape,dx,ghost_cells)
-
-    rho_step = ForwardEuler(rho.dtype)
     
     momentum_div = Divergence(2,u.shape,dx,ghost_cells)
     momentum = scalarVectorMult(2)
@@ -119,40 +117,45 @@ if __name__ == '__main__':
         return rho
     
     get_p = MapWise(get_p_op)
-    get_u_from_m = MapWise(lambda m,rho: m/rho[0])
+    m_div_rho = MapWise(lambda m,rho: m/rho[0])
     t= 0
     
-    def f(t,u,rho):
+    
+    def bc(t,m,rho):
+        u = m_div_rho(m,rho)
         u_fix = u_BC(u)
         rho_fix = rho_BC(rho)
-        # Momentum
-        m = momentum(rho_fix,u_fix)
+        m_fix = momentum(rho_fix,u_fix)
+        return m_fix,rho_fix
+    
+    def f(t,m,rho):
+        u = m_div_rho(m,rho)
         m_div = momentum_div(m,-1.)
-        
         #Convec + diff
-        u_diff = u_lapl(u_fix,viscosity)        
-        u_2 = u_outer(m,u_fix)
+        u_diff = u_lapl(u,viscosity)        
+        u_2 = u_outer(m,u)
         u_conv = u_conv_div(u_2)
         u_damp = u_damping(u_diff,damping_eps)
         #Pressure Gradient
-        p = get_p(rho_fix,c2,density)
+        p = get_p(rho,c2,density)
         # print(p.numpy().squeeze())
         dp = p_grad(p,-1.)
         # Sum
         u_F = dp - u_conv + u_diff + u_damp
-        m_next = u_step(m,u_F,dt)    
-        rho_next = rho_step(rho_fix,m_div,dt)
-        u_next = get_u_from_m(m_next,rho_next)
-        u,rho = u_next,rho_next
-        return u,rho
-    
-    # print(u.shape,p.shape)
-    u,rho = f(t,u,rho)
-    t+=dt
-    with wp.ScopedCapture() as capture:
-        u,rho = f(t,u,rho)
+        return u_F,m_div
 
-    # Create the animation
+    
+    RK2 = RungeKatta2([u.dtype,rho.dtype],force_func=f,bc= bc)
+    
+    
+    m = momentum(rho,u)
+    m,rho = RK2(t,dt,m,rho)
+    
+    with wp.ScopedCapture() as capture:
+        m,rho = RK2(t,dt,m,rho)
+    # for i in range(20001):
+    #     wp.capture_launch(capture.graph)
+    
     
     meshgrid = grid.create_meshgrid('node')[:2]
     X,Y = [m.squeeze() for m in meshgrid]
@@ -164,12 +167,11 @@ if __name__ == '__main__':
     
     
     def render(frame,step_per_frame,dt):
-        
         for i in range(step_per_frame):
             wp.capture_launch(capture.graph)
-        
+
         t = frame*step_per_frame*dt
-        new_u = u.numpy().squeeze()
+        new_u = m_div_rho(m,rho).numpy().squeeze()
         u_mag = (new_u[:,:,0]**2 + new_u[:,:,1]**2)**0.5
         ax.set_title(f'Step {frame*step_per_frame} Time = {t:.3f}')
         # step += 1
@@ -177,7 +179,8 @@ if __name__ == '__main__':
         return [im]
       
     step_per_frame = 100
-    MAX_TIME = 8.
+    
+    MAX_TIME = 5.
     TOTAL_STEPS = int(MAX_TIME//dt)
     MAX_FRAMES = TOTAL_STEPS//step_per_frame
     ani = FuncAnimation(fig,render , frames= MAX_FRAMES, interval=50, repeat=False,fargs = [step_per_frame,dt])
@@ -186,11 +189,20 @@ if __name__ == '__main__':
     # ani = FuncAnimation(fig,render , frames= 125, interval=50, repeat=False,fargs = [step_per_frame,dt])
     # ani.save('LDC_Transient.gif', writer='ffmpeg', fps=30,dpi=60)
     plt.show()
+    
+    
+    
+    u = m_div_rho(m,rho)
    
     meshgrid,us = grid.get_plotting_for('node',u)
     meshgrid,p = grid.get_plotting_for('node',rho)
+
     u_plot = us[:,:,0]
     v_plot = us[:,:,1]
+    u_mag = np.sqrt(u_plot**2 + v_plot**2)
+    plt.contourf(*meshgrid,u_mag,cmap='jet',levels = np.linspace(0,1,20))
+    plt.colorbar()
+    plt.show()
     
     import pandas as pd
     v_benchmark = pd.read_csv(r'examples\v_velocity_results.csv',sep = ',')
