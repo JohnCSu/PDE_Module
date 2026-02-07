@@ -1,21 +1,35 @@
 import warp as wp
 from ..stencil.stencil import Stencil
 import warp as wp
-from warp.types import vector,matrix
+from warp.types import vector,matrix,type_is_float
 from ..stencil.hooks import *
 '''
 Modules for Time Integration Schemes. These Stencils should be grid and float type agnostic 
 '''
 
 class ForwardEuler(Stencil):
+    '''
+    Forward Euler Implementation
+    $$
+    y_{n+1} = y_n + dt*stencil
+    $$        
+    Args
+    ---------
+    field_dtypes: wp.vector| wp.matrix | Iterable[ wp.vector| wp.matrix ]
+        dtypes of each field to pass into RK2. The order should match the order arrays are passed into when the function is called
+
+    '''
     def __init__(self, input_dtype):
         self.input_dtype = input_dtype
-        self.float_dtype = input_dtype._wp_scalar_type_
+        if type_is_float(input_dtype):
+            self.float_dtype = input_dtype
+        else:
+            self.float_dtype = input_dtype._wp_scalar_type_
         super().__init__()
     
     
     @setup
-    def initialize_kernel(self,input_array,*args,**kwargs):
+    def initialize_kernel(self,input_array,stencil_values,dt):
         self.output_array = super().create_output_array(input_array)
         self.kernel = create_forward_euler(self.input_dtype,self.float_dtype)    
         self.size = input_array.size

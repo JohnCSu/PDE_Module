@@ -128,7 +128,8 @@ class GridBoundary(Boundary):
                 
         
         Note that a copy is performed between the input and output_array before the forward call
-        '''    
+        '''
+            
         wp.launch(
             kernel=self.kernel,
             dim = (len(self.boundary_ids),*self.input_dtype_shape),
