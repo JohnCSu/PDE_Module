@@ -145,7 +145,7 @@ if __name__ == '__main__':
         return u_F,m_div
 
     
-    RK2 = RungeKatta2([u.dtype,rho.dtype],force_func=f,bc= bc)
+    RK2 = RungeKatta2([u.dtype,rho.dtype],f=f,bc= bc)
     
     
     m = momentum(rho,u)
@@ -153,9 +153,6 @@ if __name__ == '__main__':
     
     with wp.ScopedCapture() as capture:
         m,rho = RK2(t,dt,m,rho)
-    # for i in range(20001):
-    #     wp.capture_launch(capture.graph)
-    
     
     meshgrid = grid.create_meshgrid('node')[:2]
     X,Y = [m.squeeze() for m in meshgrid]
@@ -163,8 +160,6 @@ if __name__ == '__main__':
     im = ax.imshow(u.numpy().squeeze()[:,:,0].T,origin='lower', animated=True, cmap='jet',vmin = 0.,vmax = 1.)
     # im = ax.contourf(X,Y,,cmap= 'jet')
     fig.colorbar(im, ax=ax, label='U mag')
-    
-    
     
     def render(frame,step_per_frame,dt):
         for i in range(step_per_frame):
@@ -178,16 +173,12 @@ if __name__ == '__main__':
         im.set_data(u_mag.T)
         return [im]
       
-    step_per_frame = 100
+    step_per_frame = 250
     
-    MAX_TIME = 5.
+    MAX_TIME = 8.
     TOTAL_STEPS = int(MAX_TIME//dt)
     MAX_FRAMES = TOTAL_STEPS//step_per_frame
     ani = FuncAnimation(fig,render , frames= MAX_FRAMES, interval=50, repeat=False,fargs = [step_per_frame,dt])
-        
-    # step_per_frame = 1000
-    # ani = FuncAnimation(fig,render , frames= 125, interval=50, repeat=False,fargs = [step_per_frame,dt])
-    # ani.save('LDC_Transient.gif', writer='ffmpeg', fps=30,dpi=60)
     plt.show()
     
     
