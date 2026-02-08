@@ -3,6 +3,10 @@ from warp.types import vector,matrix
 from collections.abc import Iterable
 
 
+class SignatureMismatchError(ValueError):
+    """Raised when a provided function does not meet the required input structure."""
+    pass
+
 def tuplify(x:Any):
     '''Convert single item into tuple of element one or tuple. String and bytes are treated as a single object. All other iterables converted to tuple'''
     if isinstance(x,(str,bytearray,bytes)):
