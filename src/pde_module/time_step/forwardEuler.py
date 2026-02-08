@@ -35,6 +35,20 @@ class ForwardEuler(Stencil):
         self.size = input_array.size
     
     def forward(self,input_array,stencil_values,dt):
+        '''
+        Args
+        ---------
+            input_array : wp.array3d 
+                A 3D array with that matches the input shape (either vector or matrix)
+            stencil_values: wp.array3d
+                A 3D array that matches the input shape and dtype. represents the gradient or forcing term
+            dt: float
+                float represeting time increment
+        Returns
+        ---------
+            output_array : wp.array3d 
+                A 3D array with same shape and dtype as the input_array
+        '''
         assert input_array.shape == stencil_values.shape == self.output_array.shape
         wp.launch(kernel=self.kernel,dim = self.size,inputs = [input_array.flatten(),stencil_values.flatten(),dt], outputs = [self.output_array.flatten()])
         return self.output_array
