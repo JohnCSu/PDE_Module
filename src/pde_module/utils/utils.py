@@ -3,6 +3,16 @@ from warp.types import vector,matrix
 from collections.abc import Iterable
 
 
+def get_unique_key(dictionary, base_name):
+    '''Generate A unique Key for a dictionary'''
+    candidate = base_name
+    counter = 1
+    while candidate in dictionary:
+        candidate = f"{base_name}_{counter}"
+        counter += 1
+    return candidate
+
+
 class SignatureMismatchError(ValueError):
     """Raised when a provided function does not meet the required input structure."""
     pass
