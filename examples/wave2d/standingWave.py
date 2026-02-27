@@ -1,23 +1,27 @@
 '''
-2D Heat Equation Example
+2D Wave Equation Example For a standing wave
 
-A simple PDE where we solve the heat equation:
+du**2/dt**2 = c*laplace(u)
 
-du/dt = alpha*laplace(u)
+We solve the wave equation as a system of first order PDEs
+
+if u is displacement and v is velocity (time derivitive of u):
+
+du/dt = v
+dv/dt = c*laplace(u)
 
 Over a 2D 1x1 Grid
 
 For Initial Condition:
-u(x,y,0) = sin(pi*x)*sin(pi*y)
+u(x,y,0) = A*(np.sin(m*np.pi*x/L)*np.sin(m*np.pi*y)/L)
+
+- A: Amplitude = 1
+- m: number of modes along each each = 2
+- L: Length along axis  = 1
+- c: Wave Speed = 1
 
 With Boundary Condition at the grid perimeter:
 u(x_b,y_b,t) = 0
-
-This has an Analytic solution:
-
-u(x,y,t) = exp(-2.*alpha*pi^2*t)sin(pi*x)*sin(pi*y)
-
-
 '''
 import numpy as np
 import warp as wp
@@ -25,7 +29,7 @@ from matplotlib import pyplot as plt
 from pde_module.geometry.grid import Grid
 from pde_module.FDM.laplacian import Laplacian
 from pde_module.time_step.forwardEuler import ForwardEuler
-from pde_module.FDM.gridBoundary import GridBoundary
+from pde_module.FDM.boundary.gridBoundary import GridBoundary
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 wp.init()
@@ -70,14 +74,13 @@ if __name__ == '__main__':
             v_next = v_step(v,stencil,dt)
             u_next = u_step(u2,v,dt)
             u,v = u_next,v_next
-            if i % 10 ==0:
+            if i % 5 ==0:
                 yield i,u,v
-        
         
 meshgrid,us = grid.get_plotting_for('node',u0)
 X,Y = [m.squeeze() for m in meshgrid]
 fig, ax = plt.subplots()
-im = ax.imshow(u0.numpy().squeeze().T,origin='lower', animated=True, cmap='jet',vmin = -1.,vmax = 1.)
+im = ax.imshow(u0.numpy().squeeze().T,origin='lower', animated=True, cmap='jet',vmin = -A,vmax = A)
 # im = ax.contourf(X,Y,,cmap= 'jet')
 fig.colorbar(im, ax=ax, label='U mag')
 
@@ -86,7 +89,7 @@ x_plot = np.linspace(0,L,n)
 
 def render(frame):
     step,us,vs = frame
-    ax.set_title(f'Step {step} ')
+    ax.set_title(f'Standing Wave Step {step} Time {step*dt:.3F}')
     # step += 1
     im.set_data(us.numpy().squeeze().T)
     return [im]
