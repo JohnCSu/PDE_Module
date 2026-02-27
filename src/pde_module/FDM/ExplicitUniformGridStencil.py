@@ -9,6 +9,7 @@ class ExplicitUniformGridStencil(Stencil):
     '''
     Class For Stencil on Uniform Grids for AoS grids
     '''
+    output_array:wp.array | None = None
     def __init__(self, inputs:int|list[int],outputs:int|list[int],dx:float,ghost_cells = 0,float_dtype:wp.float32|wp.float64 = wp.float32):
         super().__init__()
         self.dx = float_dtype(dx)
@@ -21,7 +22,6 @@ class ExplicitUniformGridStencil(Stencil):
         self._output_dtype = self._get_dtype_from_shape(self.outputs,float_dtype)
         
         
-    
     @property
     def output_dtype(self) -> wp_Matrix | wp_Vector:
         return self._output_dtype

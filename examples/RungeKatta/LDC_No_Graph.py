@@ -28,7 +28,7 @@ from matplotlib import pyplot as plt
 from pde_module.geometry.grid import Grid
 from pde_module.FDM.laplacian import Laplacian
 from pde_module.time_step.forwardEuler import ForwardEuler
-from pde_module.FDM.gridBoundary import GridBoundary
+from pde_module.FDM.boundary.gridBoundary import GridBoundary
 from pde_module.FDM.grad import Grad
 from pde_module.FDM.divergence import Divergence
 from pde_module.time_step.rungeKatta import RungeKatta2
