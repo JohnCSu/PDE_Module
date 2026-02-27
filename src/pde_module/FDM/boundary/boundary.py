@@ -1,10 +1,13 @@
-from .ExplicitUniformGridStencil import ExplicitUniformGridStencil
+from ..ExplicitUniformGridStencil import ExplicitUniformGridStencil
 import warp as wp
-from warp.types import vector,matrix,type_is_vector
-from ..utils.constants import VON_NEUMANN,DIRICHLET
+from warp.types import vector,matrix,type_is_vector,type_is_float,is_float
+from ...utils.constants import Boundary_Types
+from ...utils.utils import get_unique_key
 # from .types import *
-from ..stencil.hooks import *
+from ...stencil.hooks import *
 import numpy as np
+from typing import Callable
+from .func_boundary import FunctionBC
 
 class Boundary(ExplicitUniformGridStencil):
     '''
@@ -40,6 +43,7 @@ class Boundary(ExplicitUniformGridStencil):
     boundary_type: np.ndarray
     boundary_value: np.ndarray
     groups:dict[str,np.ndarray[int]] = dict()
+    func_groups:dict[str,FunctionBC] = dict() 
     def __init__(self,field,dx,ghost_cells:int):
         inputs = self.get_shape_from_dtype(field.dtype)
         super().__init__(inputs ,inputs, dx, field.dtype._wp_scalar_type_)
@@ -87,30 +91,47 @@ class Boundary(ExplicitUniformGridStencil):
     
     def set_BC(self,face_ids:str|int|np.ndarray|list|tuple,value:float,boundary_type:int,outputs_ids:int|np.ndarray|list|tuple|None):
         '''
-        Key:
-            1 -> Dirichlet
-            2 -> Von Neumann
+        For Flag see Boundary_Types Enum
         '''
         
-        assert boundary_type != 0, 'boundary_type value of 0 is reserved as no BC applied to said outputs. THis is currently not allowed'
-        
-        if isinstance(face_ids,str):
+        if isinstance(face_ids,str): # We have a group name
             assert face_ids in self.groups.keys()
             face_ids = self.groups[face_ids]
-            
-        assert isinstance(face_ids,(np.ndarray,list,tuple,int))
-        assert isinstance(value,float), 'Value must be type float'
+        else:
+            assert isinstance(face_ids,(np.ndarray,list,tuple,int))
+            face_ids = np.array(face_ids,dtype = np.int32)
         
         outputs_ids = self._check_output_ids(outputs_ids)
-        
-        self.boundary_type[face_ids,outputs_ids] = boundary_type # For Dirichlet
+        self.boundary_type[face_ids,outputs_ids] = boundary_type
+        assert isinstance(value,float)
         self.boundary_value[face_ids,outputs_ids] = value
         
-    def dirichlet_BC(self,group:str|int|np.ndarray|list|tuple,value:float,outputs_ids:int|np.ndarray|list|tuple|None = None):
-        self.set_BC(group,value,DIRICHLET,outputs_ids)        
+        
+    def set_func_BC(self,face_ids:str|int|np.ndarray|list|tuple,func:Callable,boundary_type:int,outputs_id:int):
+        assert type(outputs_id) is int, 'output id must be an integer'
+        groupName = None
+        if isinstance(face_ids,str):
+            assert face_ids in self.groups.keys()
+            groupName = face_ids
+            face_ids = self.groups[face_ids]
+        else:
+            assert isinstance(face_ids,(np.ndarray,list,tuple,int))
+            groupName = get_unique_key(self.groups,'BC_Group')
+            face_ids = np.array(face_ids,dtype = np.int32)
+        
+        self.func_groups[groupName] = FunctionBC(face_ids,np.int8(boundary_type),outputs_id,func)
+        
+        
+    def dirichlet_BC(self,group:str|int|np.ndarray|list|tuple,value:float|Callable,outputs_ids:int|np.ndarray|list|tuple|None = None):
+        if isinstance(value,float):
+            self.set_BC(group,value,Boundary_Types.DIRICHLET,outputs_ids)
+        else:
+            assert callable(value) 
+            self.set_func_BC(group,value,Boundary_Types.DIRICHLET,outputs_ids)
     
-    def vonNeumann_BC(self,group:str|int|np.ndarray|list|tuple,value:float,outputs_ids:int|np.ndarray|list|tuple|None = None):
-        self.set_BC(group,value,VON_NEUMANN,outputs_ids)
+    def vonNeumann_BC(self,group:str|int|np.ndarray|list|tuple,value:float|Callable,outputs_ids:int|np.ndarray|list|tuple|None = None):
+        self.set_BC(group,value,Boundary_Types.VON_NEUMANN,outputs_ids)
+    
     
     
     def no_slip(self,group:str|int|np.ndarray|list|tuple):
@@ -127,10 +148,20 @@ class Boundary(ExplicitUniformGridStencil):
         assert self.inputs[0] == self.dimension, 'Valid only when input_dtype is vector with same length equal to dimension of field'
         
         assert group in self.groups.keys() and group in {'-X','+X','-Y','+Y','-Z','+Z'}, "{'-X','+X','-Y','+Y','-Z','+Z'} are valid groups"
-        
         axis_name = group[-1]
         indices = ['X','Y','Z']
         axis = indices.index(axis_name)
         self.vonNeumann_BC(group,0.) # Set all to vonneumann
         self.dirichlet_BC(group,0.,axis) # Set corresponding axis to dirichlet
     
+    def check_boundary_types(self): 
+        '''
+        Return False if any ids in boundary_type DONT have a boundary type applied to them, else return True
+        
+        No Error is raised only a warning is raised (as this may be intended behaviour)
+        
+        '''
+        if np.any(self.boundary_type == Boundary_Types.NO_BC):
+            Warning('There are boundary ID that have not been given a value yet')
+            return False
+        return True

@@ -2,7 +2,7 @@ from .boundary import Boundary
 import numpy as np
 import warp as wp
 from warp.types import vector,matrix,type_is_vector
-from ..stencil.hooks import *
+from ...stencil.hooks import *
 from pde_module.stencil.utils import create_stencil_op,eligible_dims_and_shift,create_tensor_divergence_op
 
 np.concatenate
