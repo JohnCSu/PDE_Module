@@ -1,4 +1,4 @@
-from .boundary import Boundary,bc_from_function
+from .boundary import Boundary,FunctionBC
 import warp as wp
 from warp.types import vector,matrix,type_is_vector
 # from .types import *
@@ -100,54 +100,81 @@ class GridBoundary(Boundary):
                 self.boundary_interior[index,i] = sign
     
     
+    def __call__(self,input_array,t =0.,params:dict[str,Any] = dict()):
+        '''
+        Args
+        ---------
+            input_array : wp.array3d
+                Current values to apply BC to
+            t: float, default = 0.
+                current simulation time to pass into array. Used only for function based BC kernels
+            params: dict[str,Any]
+                params to pass into function based BC Kernels. the keys should match the corresponding kernels found in func_groups.
+                values of each key should be warp compatible objects. Used only for function based BC kernels
+            
+        Returns
+        ---------
+            output_array : wp.array3d 
+                A 3D array with same shape and dtype as the input_array
+                
+        
+        Note that a copy is performed between the input and output_array before the forward call
+        '''
+        return super().__call__(input_array,t,params)
+    
     @setup
     def to_warp(self,*args,**kwargs):
         self.warp_boundary_ijk_indices = wp.array(self.boundary_ijk_indices,dtype=wp.vec3i)
         self.warp_boundary_interior =wp.array(self.boundary_interior,dtype = wp.vec3i)
         self.warp_boundary_type =wp.array(self.boundary_type)
         self.warp_boundary_value = wp.array(self.boundary_value,dtype = self.input_dtype)
-
+        self.t = wp.zeros(1,dtype=self.float_dtype)
+        
         for key in self.func_groups.keys(): # If Empty this loop is skipped
+            assert self.grid_coordinates is not None
             self.func_groups[key].to_warp()
         
-    @setup
-    def initialize_kernel(self, input_array, *args, **kwargs):
+    @setup(order = 1)
+    def initialize_kernel(self, *args, **kwargs):
         self.kernel = create_boundary_kernel(self.input_dtype,self.ghost_cells,self.dx)
         if self.func_groups:
             for key in self.func_groups.keys():
                 self.func_groups[key].create_kernel(self.input_dtype,self.dx)
-                
+    
+    
+    
     @before_forward
-    def set_default_params(self,input_array,t,params:dict = dict(),**kwargs):
+    def set_default_params(self,input_array,t,params,**kwargs):
         for key in self.func_groups.keys():
             if key not in params.keys():
                 params[key] = wp.uint8(0)
-    
+                
+        self.t.fill_(self.float_dtype(t))
+        
     @before_forward
     def copy_array(self,input_array,*args,**kwargs):
         wp.copy(self.output_array,input_array)
-    
-    
+
     def func_kernel(self,input_array,t,params,**kwargs):
-         for key,func_BC in self.func_groups.items():
-                wp.launch(
-                    kernel = func_BC.kernel,
-                    dim = len(func_BC.face_ids),
-                    inputs = [
-                       input_array,
-                       func_BC.face_ids,
-                        self.warp_boundary_ijk_indices,
-                        self.warp_boundary_interior,
-                        self.grid_coordinates,
-                        t,
-                        params,
-                        self.output_array
-                    ],
-                    outputs=[
-                        self.output_array
-                    ]
-                )
-    def forward(self, input_array, *args, **kwargs):
+        
+        for key,func_BC in self.func_groups.items():
+            wp.launch(
+                kernel = func_BC.kernel,
+                dim = len(func_BC.face_ids),
+                inputs = [
+                    input_array,
+                    func_BC.face_ids,
+                    self.warp_boundary_ijk_indices,
+                    self.warp_boundary_interior,
+                    self.grid_coordinates,
+                    self.t,
+                    params[key],
+                ],
+                outputs=[
+                    self.output_array
+                ]
+            )
+    def forward(self, input_array,dt,params, **kwargs):
         '''
         Args
         ---------
@@ -178,11 +205,9 @@ class GridBoundary(Boundary):
         )
         
         if self.func_groups:
-           self.func_kernel()
+           self.func_kernel(input_array,dt,params)
         return self.output_array
     
-
-
 
 
 def create_boundary_kernel(input_dtype,ghost_cells,dx):

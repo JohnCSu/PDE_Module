@@ -36,10 +36,13 @@ class FunctionBC:
     def create_kernel(self,input_dtype,dx):
         self.kernel = create_func_boundary_kernel(self.func,self.boundary_type,self.varID,input_dtype,dx)
     
-    
+
+
+
 def create_func_boundary_kernel(func,boundary_type,varID,input_dtype,dx):
+    boundary_type = int(boundary_type)
     assert boundary_type in Boundary_Types and boundary_type != Boundary_Types.NO_BC
-    float_type = input_dtype._wp_scalar_type
+    float_type = input_dtype._wp_scalar_type_
     dx = float_type(dx)
     
     @wp.kernel
@@ -48,7 +51,7 @@ def create_func_boundary_kernel(func,boundary_type,varID,input_dtype,dx):
                         boundary_group_ijk_indices:wp.array(dtype=wp.vec3i),
                         boundary_interior:wp.array(dtype=wp.vec3i),
                         coordinates:wp.array3d(dtype=vector(3,float_type)),
-                        t:float_type,
+                        t:wp.array(dtype=float_type),
                         params:Any,
                         new_values:wp.array3d(dtype = input_dtype)):
         tid = wp.tid()
@@ -59,8 +62,8 @@ def create_func_boundary_kernel(func,boundary_type,varID,input_dtype,dx):
         z = nodeID[2]
         interior_vec = boundary_interior[i]
         
-        val = func(current_values,nodeID,varID,coordinates,t,dx,params) # Same shape or float? let make it float for simplicity
-        
+        val = func(current_values,nodeID,varID,coordinates,t[0],dx,params) # Same shape or float? let make it float for simplicity
+        # wp.printf('%f',val)
         for axis in range(3):
             if interior_vec[axis] != 0:                    
                 inc_vec = wp.vec3i()
