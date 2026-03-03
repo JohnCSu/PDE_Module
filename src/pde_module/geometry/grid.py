@@ -43,6 +43,9 @@ class Grid:
     def array_types(self):
         return 'numpy','warp'
     
+    
+    
+    
     def __init__(self,dx:float,num_points:tuple[int],origin = None,float_dtype = wp.float32,ghost_cells = None):
         '''
         Create A Uniform Grid.
@@ -73,6 +76,10 @@ class Grid:
         self.dx = self.np_float_dtype(dx)
         self.element_volume = dx**3
         self.face_area = dx**2
+        
+        self.ghost_cells = 0 if ghost_cells is None else ghost_cells
+        assert isinstance(self.ghost_cells,int) and self.ghost_cells >= 0 
+        
         self.origin = np.zeros(3,dtype=self.np_float_dtype) if origin is None else np.array(origin,dtype=self.np_float_dtype)
         self.nodal_coordinates_vectors = tuple(np.arange(0,axis,dtype=self.np_float_dtype)*dx - axis_origin for axis,axis_origin in zip(self.num_points,self.origin))
         self.cell_centroid_coordinate_vectors = tuple(
@@ -84,9 +91,13 @@ class Grid:
         self.cell_grid_shape = tuple(len(coord) for coord in self.cell_centroid_coordinate_vectors)
         self.node_grid_shape = self.num_points
         
-        self.ghost_cells = 0 if ghost_cells is None else ghost_cells
-        assert isinstance(self.ghost_cells,int) and self.ghost_cells >= 0 
+        
+        
 
+        
+        self.cell_centroid_coordinates = wp.array(self.create_meshgrid('cell',stack_axis= -1),dtype= vector(3,self.wp_float_dtype))
+        self.node_coordinates = wp.array(self.create_meshgrid('node',stack_axis= -1),dtype= vector(3,self.wp_float_dtype))
+        
     
     
     def get_coord_vectors(self,grid_type):
@@ -109,7 +120,7 @@ class Grid:
             stack_axis (None| int , optional) :
                 whether to optionally stack the meshgrid arrays into a single array. If None, 
                 then the standard meshgrid (list of arrays) is returned otherwise specify the
-                stacking axis
+                stacking axis. stack_axis = 0 for example returns a [3,X,Y,Z] array
 
                 Default is None
             indexing ({'ij','xy'} str, optional) :
@@ -149,6 +160,9 @@ class Grid:
                 
         return coord_with_ghost
             
+    
+    def _create_grid_points(self,grid_type):
+        return self.create_meshgrid(grid_type,self.ghost_cells,stack_axis= -1)
     
     def _overide_ghost_cells(self,ghost_cells):
         if ghost_cells is None:
