@@ -105,22 +105,29 @@ if __name__ == '__main__':
                 yield i,u,v
                 
 
-meshgrid,us = grid.get_plotting_for('node',u0)
-X,Y = [m.squeeze() for m in meshgrid]
-fig, ax = plt.subplots()
-im = ax.imshow(u0.numpy().squeeze().T,origin='lower', animated=True, cmap='jet',vmin = -A,vmax = A)
+meshgrid = grid.create_meshgrid('node')
+X,Y,_ = [m.squeeze() for m in meshgrid]
+# fig, ax = plt.subplots()
+
+
+fig = plt.figure(figsize=(10, 7))
+ax = fig.add_subplot(111, projection='3d')
+# im = ax.imshow(u0.numpy().squeeze().T,origin='lower', animated=True, cmap='jet',vmin = -A,vmax = A)
+surf = ax.plot_surface(X.T, Y.T,u0.numpy().squeeze().T , cmap='jet', edgecolor='none')
 # im = ax.contourf(X,Y,,cmap= 'jet')
-fig.colorbar(im, ax=ax, label='U mag')
+fig.colorbar(surf, ax=ax, label='U mag')
 
 x_plot = np.linspace(0,L,n)
 
 
 def render(frame):
+    ax.clear()
     step,us,vs = frame
     ax.set_title(f'Step {step} ')
+    ax.set_zlim(-1, 1)
     # step += 1
-    im.set_data(us.numpy().squeeze().T)
-    return [im]
+    surf = ax.plot_surface(X.T, Y.T,us.numpy().squeeze().T , cmap='jet', edgecolor='none')
+    return surf,
 
 
 ani = FuncAnimation(fig,render , frames= generator(), interval=50, repeat=False)
