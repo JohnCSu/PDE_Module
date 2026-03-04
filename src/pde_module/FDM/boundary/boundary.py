@@ -123,8 +123,8 @@ class Boundary(ExplicitUniformGridStencil):
         
         
     def dirichlet_BC(self,group:str|int|np.ndarray|list|tuple,value:float|Callable,outputs_ids:int|np.ndarray|list|tuple|None = None):
-        if isinstance(value,float):
-            self.set_BC(group,value,Boundary_Types.DIRICHLET,outputs_ids)
+        if isinstance(value,float|int):
+            self.set_BC(group,float(value),Boundary_Types.DIRICHLET,outputs_ids)
         else:
             assert callable(value) 
             self.set_func_BC(group,value,Boundary_Types.DIRICHLET,outputs_ids)
