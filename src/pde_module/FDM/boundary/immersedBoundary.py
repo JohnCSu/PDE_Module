@@ -1,10 +1,10 @@
 from .boundary import Boundary
 import numpy as np
 import warp as wp
-from warp.types import vector,matrix,type_is_vector
+from warp.types import vector,matrix,type_is_vector,is_array
 from ...stencil.hooks import *
 from pde_module.stencil.utils import create_stencil_op,eligible_dims_and_shift,create_tensor_divergence_op
-
+from matplotlib import pyplot as plt
 np.concatenate
 class ImmersedBoundary(Boundary):
     '''
@@ -61,7 +61,20 @@ class ImmersedBoundary(Boundary):
         self._find_fluid_boundary()
         self._find_fluid_neighbors()
         self.define_boundary_value_and_type_arrays(self.solid_boundary)
+    
+    
+    def show_bitmask(self):
+        assert self.dimension == 2 ,'Currently only displaying 2D bitmasks supported'
+        fig, ax = plt.subplots()
+        if is_array(self.bitmask):
+            bitmask = self.bitmask.numpy()
+        else:
+            bitmask = np.array(self.bitmask)
+        im = ax.imshow(bitmask.squeeze().T,origin='lower', animated=False,cmap='gray',vmin = 0,vmax = 1)
+        ax.set_title('BitMask')
         
+        plt.show()
+    
     def _find_solid_boundary(self):
         # From the bitmask we need to go through all points and find the boundary
         self.solid_indices = np.stack(np.nonzero(self.bitmask),axis= -1,dtype=np.int32)
