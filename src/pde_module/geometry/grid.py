@@ -105,7 +105,7 @@ class Grid:
         return self.cell_centroid_coordinate_vectors if grid_type == 'cell' else self.nodal_coordinates_vectors
     
     
-    def create_meshgrid(self,grid_type:str,ghost_cells = None,stack_axis = None,indexing = 'ij'):
+    def create_meshgrid(self,grid_type:str,ghost_cells = None,stack_axis = None,indexing = 'ij') -> list[np.ndarray] | np.ndarray:
         '''
         Create a meshgrid out of the coordinate vectors of the grid depending on grid type
         
