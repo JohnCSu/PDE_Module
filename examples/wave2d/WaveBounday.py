@@ -36,7 +36,6 @@ from pde_module.geometry.grid import Grid
 from pde_module.FDM.laplacian import Laplacian
 from pde_module.time_step.forwardEuler import ForwardEuler
 from pde_module.FDM.boundary.gridBoundary import GridBoundary
-from pde_module.FDM import ImmersedBoundary
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 from warp.types import vector
