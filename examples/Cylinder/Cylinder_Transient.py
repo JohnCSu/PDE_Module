@@ -36,7 +36,7 @@ farfield_sigma_max = 0.2
 
 Features Used:
 - Staircase Approximation For Immersed Boundary Condition (First Order Accuracy)
-- DampingLayers for farfield conditions and absorb both acoustice and velocity waves
+- FarFields for farfield conditions and absorb both acoustice and velocity waves
 - Biharmonic Damping to reduce pressure checkerboarding
 
 '''
@@ -51,7 +51,7 @@ from pde_module.FDM import (Laplacian,
                             Grad,
                             GridBoundary,
                             Divergence,
-                            DampingLayer,
+                            FarField,
                             ImmersedBoundary,
                             scalarVectorMult,
                             OuterProduct)
@@ -173,12 +173,11 @@ if __name__ == '__main__':
     
     U_ref = wp.vec2f(U_ref)
     rho_ref = vector(1,float)(density)
-    u_farfield = DampingLayer(2,15,2.,u.shape,dx,ghost_cells)
-    rho_farfield =DampingLayer(1,15,2.,u.shape,dx,ghost_cells)
+    u_farfield = FarField(2,15,2.,u.shape,dx,ghost_cells)
+    rho_farfield =FarField(1,15,2.,u.shape,dx,ghost_cells)
     
     np.set_printoptions(precision=1,suppress= False)
     t= 0.
-    
     
     
     print(damping_eps)

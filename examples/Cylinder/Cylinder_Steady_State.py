@@ -33,7 +33,7 @@ import numpy as np
 import warp as wp
 from matplotlib import pyplot as plt
 from pde_module.geometry import Grid
-from pde_module.FDM import Laplacian,Grad,GridBoundary,Divergence,DampingLayer,ImmersedBoundary
+from pde_module.FDM import Laplacian,Grad,GridBoundary,Divergence,FarField,ImmersedBoundary
 from pde_module.time_step import ForwardEuler 
 from warp.types import vector
 import matplotlib.pyplot as plt
@@ -105,8 +105,8 @@ if __name__ == '__main__':
     p_grad = Grad(1,p.shape,dx,ghost_cells)
     p_step = ForwardEuler(p.dtype)
     
-    u_farfield = DampingLayer(2,15,2.,u.shape,dx,ghost_cells)
-    p_farfield =DampingLayer(1,15,2.,p.shape,dx,ghost_cells)
+    u_farfield = FarField(2,15,2.,u.shape,dx,ghost_cells)
+    p_farfield =FarField(1,15,2.,p.shape,dx,ghost_cells)
     
     
     t= 0
