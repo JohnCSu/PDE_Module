@@ -24,10 +24,12 @@ The Goal is to create a system similar to nn.Module in pytorch: You construct si
   <tr>
     <td align="center"><img src="src/images/LDC_Transient.gif" width="300"></td>
     <td align="center"><img src="src/images/Transient_Cylinder.gif" width="300"></td>
+    <td align="center"><img src="src/images/Defraction.gif" width="300"></td>
   </tr>
   <tr>
     <td align="center">Transient LDC Re=100</td>
     <td align="center">Transient Cylinder Flow Re=500</td>
+    <td align="center">Diffraction With Wave Equation</td>
   </tr>
 </table>
 

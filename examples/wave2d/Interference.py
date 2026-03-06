@@ -131,7 +131,7 @@ if __name__ == '__main__':
         k = 40.*wp.pi/(W)
         omega = wp.float32(k*c)
         t = 0.
-        for i in range(3000):        
+        for i in range(1000):        
             #Boundary conditions
             u3 = BC(u,t,{'-X': omega})
             u2 = slot_BC(u3)
@@ -144,7 +144,7 @@ if __name__ == '__main__':
             u,v = u_next,v_next
             t += dt
             
-            if i % 5 ==0:
+            if i % 10 ==0:
                 yield i,u,v
 
                 
@@ -160,19 +160,19 @@ ax.set_facecolor('black')
 im = ax.imshow(u0.numpy().squeeze().T,origin='lower',alpha = 1., animated=True, cmap='jet',vmin = -1,vmax = 1)
 # im = ax.contourf(X,Y,,cmap= 'jet')
 fig.colorbar(im, ax=ax, label='U mag')
-
-x_plot = np.linspace(0,L,n)
-
+col = fig.colorbar(im, ax=ax, label='u',orientation="horizontal",location = 'bottom')
 
 def render(frame):
     # ax.clear()
     step,us,vs = frame
-    ax.set_title(f'Step {step} ')
+    ax.set_title(f'Interference Step {step} t = {step*dt:.3f}')
     us = us.numpy().squeeze()
     us = us + slot_BC.bitmask.squeeze()*2
     im.set_data(us.T)
+    im.set_clim(vmin=-1., vmax=1.)
     return im
 
 
 ani = FuncAnimation(fig,render , frames= generator(), interval=50, repeat=False)
-plt.show()
+ani.save('Defraction.gif', writer='ffmpeg', fps=20,dpi=60)
+# plt.show()

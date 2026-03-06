@@ -167,6 +167,7 @@ if __name__ == '__main__':
         
     
     ani = FuncAnimation(fig,render , frames= 500, interval=1, repeat=False,fargs = [step_per_frame,dt])
+    # ani.save('Steady_State_Cylinder.gif', writer='ffmpeg', fps=20,dpi=60)
     plt.show()
     
         
