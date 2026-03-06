@@ -100,6 +100,16 @@ class GridBoundary(Boundary):
                 self.boundary_interior[index,i] = sign
     
     
+    def shift_group(self,group:str,shift:int,axis:int):
+        '''
+        Shift a groups indices along an axis. this is useful if we need absorbtion layers behind say an inlet
+        '''
+        
+        assert axis < self.dimension
+        assert group in self.groups.keys()
+        self.boundary_ijk_indices[self.groups[group],axis] += shift
+    
+    
     def __call__(self,input_array,t =0.,params:dict[str,Any] = dict()):
         '''
         Args
