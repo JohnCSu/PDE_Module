@@ -8,9 +8,9 @@ from pde_module.utils.constants import INT32_MAX
 from collections.abc import Iterable
 
 
-class DampingLayer(ExplicitUniformGridStencil):
+class FarField(ExplicitUniformGridStencil):
     '''
-    Apply a damping layer num_layers thick around the outer layers of the grid
+    Apply a sponge layer num_layers thick around the outer layers of the grid to let solution reach a farfield state
     
     Args
     ----------
@@ -37,51 +37,79 @@ class DampingLayer(ExplicitUniformGridStencil):
         self.grid_shape = grid_shape
         self.num_layers = num_layers
         self.beta = beta
-        self.outer_layers = self.get_outer_grid_points(num_layers,self.grid_shape)
-        
-    @staticmethod
-    def get_outer_grid_points(num_layers,grid_shape):
+        self.groups = {}
+        self.exclude_group = set()
+        self.get_sponge_sponge_points(num_layers,grid_shape)
+        # self.outer_layers = self.get_outer_sponge_points(num_layers,self.grid_shape)
+    def exclude(self,*groups):
         '''
-        Get the num_layers of outer points of a grid
+        Groups that are excludied from sponge zone e.g inlet
         '''
+        for group in groups:
+            assert group in self.groups.keys()
+            self.exclude_group.add(group)
+            
+            
+    def get_sponge_sponge_points(self,num_layers,grid_shape):
         
-        indices = np.indices(grid_shape,dtype = np.int32)
-        indices = np.moveaxis(indices,0,-1).reshape(-1,3)
+        self.indices = np.indices(grid_shape,dtype = np.int32)
+        self.indices = np.moveaxis(self.indices,0,-1).reshape(-1,3)
         
-        masks = []
-        for i,s in enumerate(grid_shape):
-            if s> 1:
-                a1 = indices[:,i] < num_layers
-                a2 = indices[:,i] >= (s-num_layers)
+        for i,(s,axis_name) in enumerate(zip(grid_shape,['X','Y','Z'])):
+            if s > 1:
+                a1 = self.indices[:,i] < num_layers
+                a2 = self.indices[:,i] >= (s-num_layers)
                 
-                masks.append(np.logical_or(a1,a2))
-                
+                self.groups[f'-{axis_name}'] = a1
+                self.groups[f'+{axis_name}'] = a2     
+    
+    def get_sponge_array(self):
+        masks = [val for key,val in self.groups.items() if key not in self.exclude_group]
         mask = masks[0]
         for m in masks[1:]:
             mask = np.logical_or(mask,m)
-        
-        outer_layers = indices[mask]
+                
+        outer_layers = self.indices[mask]
         return outer_layers
         
-    @setup
-    def initialize_kernel(self, input_array, *args, **kwargs):
-        self.warp_outer_points = wp.array(self.outer_layers,dtype = wp.vec3i)
-        self.kernel = create_DampingLayer_kernel(self.input_dtype,self.num_layers,self.beta,self.grid_shape,self.ghost_cells)
     
-    @setup
-    def zero_array(self,*args,**kwargs):
-        self.output_array.zero_()
-    
-    def forward(self,input_array,farfield_condition,sigma_max,*args, **kwargs):
+    def __call__(self, input_array,farfield_condition,sigma_max):
         '''
         Args
         ---------
             input_array : wp.array3d 
                 A 3D array with that matches the input shape (either vector or matrix)
             farfield_condition: wp.vector | wp.matrix
-                farfield condition the damping layers force the solution to match
+                farfield condition the sponge layers force the solution to match
             sigma_max : float
-                proportionality term to scale the damping layer. Recommended is alpha/dt where alpha ~ 0.05 - 0.5
+                proportionality term to scale the sponge layer. Recommended is alpha/dt where alpha ~ 0.05 - 0.5
+        Returns
+        ---------
+            output_array : wp.array3d 
+                A 3D array with same shape and dtype as the input_array
+        '''    
+        return super().__call__(input_array,farfield_condition,sigma_max)
+    
+    @setup
+    def initialize_kernel(self, input_array, *args, **kwargs):
+        self.outer_layers = self.get_sponge_array()
+        self.warp_outer_points = wp.array(self.outer_layers,dtype = wp.vec3i)
+        self.kernel = create_spongeLayer_kernel(self.input_dtype,self.num_layers,self.beta,self.grid_shape,self.ghost_cells)
+    
+    @setup
+    def zero_array(self,*args,**kwargs):
+        self.output_array.zero_()
+    
+    def forward(self,input_array,farfield_condition,sigma_max):
+        '''
+        Args
+        ---------
+            input_array : wp.array3d 
+                A 3D array with that matches the input shape (either vector or matrix)
+            farfield_condition: wp.vector | wp.matrix
+                farfield condition the sponge layers force the solution to match
+            sigma_max : float
+                proportionality term to scale the sponge layer. Recommended is alpha/dt where alpha ~ 0.05 - 0.5
         Returns
         ---------
             output_array : wp.array3d 
@@ -92,7 +120,7 @@ class DampingLayer(ExplicitUniformGridStencil):
         
     
 
-def create_DampingLayer_kernel(input_dtype ,num_layers,beta,grid_shape,ghost_cells):
+def create_spongeLayer_kernel(input_dtype ,num_layers,beta,grid_shape,ghost_cells):
     eligible_dims,_ = eligible_dims_and_shift(grid_shape,ghost_cells)
     dimension = len(eligible_dims)
     limits = matrix(shape = (3,2), dtype= int)()
@@ -119,16 +147,16 @@ def create_DampingLayer_kernel(input_dtype ,num_layers,beta,grid_shape,ghost_cel
         return wp.int32(wp.argmin(out))
     
     @wp.kernel
-    def DampingLayer(
+    def spongeLayer(
         input_array:wp.array3d(dtype = input_dtype ),
-        grid_points:wp.array(dtype = wp.vec3i),
+        sponge_points:wp.array(dtype = wp.vec3i),
         farfield_condition : input_dtype ,
         sigma_max:float_type,
         output_array:wp.array3d(dtype = input_dtype ), 
     ):
         tid = wp.tid()
         
-        grid_point = grid_points[tid]
+        grid_point = sponge_points[tid]
         
         axis = get_argmin_and_min(grid_point)
         
@@ -145,7 +173,7 @@ def create_DampingLayer_kernel(input_dtype ,num_layers,beta,grid_shape,ghost_cel
         # # For RHS
         output_array[grid_point[0],grid_point[1],grid_point[2]] = -damp_factor*(input_array[grid_point[0],grid_point[1],grid_point[2]] - farfield_condition) #
         
-    return DampingLayer                                          
+    return spongeLayer                                          
         
         
     
