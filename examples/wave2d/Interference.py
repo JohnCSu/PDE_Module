@@ -58,16 +58,13 @@ def sin_wave(current_values:wp.array3d(dtype = vector(1,float)),
              dx:float,
              omega:float):
     
-    if t < 2.:
-        return wp.sin(omega*t)
-    else:
-        return current_values[nodeID[0],nodeID[1],nodeID[2]][0]
+    return wp.sin(omega*t)
     
-
+    
 if __name__ == '__main__':
     #Geometry
-    n = 81
-    L = 1
+    n = 101
+    L = 2
     dx = L/(n-1)
     
     m = 2
@@ -94,9 +91,13 @@ if __name__ == '__main__':
     slot_BC = ImmersedBoundary(u0,dx,ghost_cells)
     
     def slot(x,y,z):
+        x_bool = np.logical_and(x >= 0.3*W, x<= 0.35*W)
+        y_top = y >= 0.58*L
+        y_middle = np.logical_and(y <= 0.52*L, y >= 0.48*L)
+        y_bot = y <= 0.42*L
         
-        x_bool = np.logical_and(x >= 0.5, x<= 0.55)
-        y_bool = np.logical_or(y >= 0.55,y <= 0.45)
+        y_bool = y_top | y_middle | y_bot
+        
         # print(0.45 <= x <= 0.55)
         return np.logical_and(x_bool, y_bool ) 
     
