@@ -7,15 +7,14 @@ from numba import types
 @dataclass
 class Flat_array_container:
     array: np.ndarray
-    offsets: np.ndarray
+    offsets: np.ndarray | None
 
 class Topology:
     '''Describes the connection between shapes of different dimensions e..g face to cell'''
     face_to_cell: Flat_array_container
     cell_to_face: Flat_array_container
     cell_to_cell: Flat_array_container
-    
-    def add(self,name,array,ids):
+    def add(self,name,array,ids= None):
         setattr(self,name,Flat_array_container(array,ids))
     
     
@@ -26,12 +25,10 @@ def get_face_to_cell(cell_to_face,cell_to_face_offsets,num_unique_faces):
     for cell_id in range(len(cell_to_face_offsets)):
         offset = cell_to_face_offsets[cell_id]
         num_faces = cell_to_face[offset]
-        for j in range(num_faces):
+        for j in range(num_faces): # This part can only be done in serial
             faceID = cell_to_face[offset + j + 1]
             idx = np.int32(face_to_cell[faceID,0] != -1) # if True then idx = 1, if False then idx = 0
             face_to_cell[faceID,idx] = cell_id
-            
-                            
     return face_to_cell
     
 
@@ -51,7 +48,7 @@ def get_cell_to_cell(cell_to_face,cell_to_face_offsets,face_to_cell):
             idx = np.int32(face_to_cell[faceID,0] == cell_id)
             neighbor_cell_id = face_to_cell[faceID,idx]
             cell_to_cell[offset+j+1] = neighbor_cell_id
-
+    
     return cell_to_cell
                 
                     
