@@ -269,11 +269,11 @@ class Mesh:
         (face_connectivity,face_IDs),(cell_to_face,cell_to_face_ids) = get_faces(self.cells)
         self.faces = Faces(face_connectivity,face_IDs)
         
-        #Connections
-        self.topology.add('cell_to_face',cell_to_face,cell_to_face_ids)
+        # Topology arrays
         face_to_cell = get_face_to_cell(cell_to_face,cell_to_face_ids,len(face_IDs))
         cell_to_cell = get_cell_to_cell(cell_to_face,cell_to_face_ids,face_to_cell)
-        # Use Construct() method to calculate
+        
+        self.topology.add('cell_to_face',cell_to_face,cell_to_face_ids)
 
 
 if __name__ == '__main__':
