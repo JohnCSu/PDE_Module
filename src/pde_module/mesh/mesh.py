@@ -4,7 +4,7 @@ import numba
 from pde_module.mesh.cell import Cells
 from pde_module.mesh.cell_types import HEX,TETRA,WEDGE
 from pde_module.mesh.face import Faces,get_faces
-from pde_module.mesh.edges import Edges
+from pde_module.mesh.edge import Edges,get_edges
 from pde_module.mesh.topology import Topology,get_cell_to_cell,get_face_to_cell
 from pde_module.mesh.utils import generate_vectorized_vtk_hex
 @numba.njit
@@ -251,7 +251,7 @@ class Mesh:
     faces: Faces
     edges: Edges
     topology: Topology = Topology()
-    def __init__(self, nodes: np.ndarray, cells_connectivity: np.ndarray,cell_types:np.ndarray):
+    def __init__(self, nodes: np.ndarray, cells_connectivity: np.ndarray,cell_types:np.ndarray,float_dtype = np.float32,int_dtype = np.int32):
         """
         Initializes a Mesh object.
         
@@ -263,18 +263,24 @@ class Mesh:
             ValueError: If nodes have wrong shape, or cell references a non-existent node.
         """
         # Lets first get the connectivity then calculate everything else like centroids area etc
-        self.nodes = np.asarray(nodes, dtype=np.float32)
-        self.cells = Cells(nodes,cells_connectivity,cell_types)
+        self.nodes = np.asarray(nodes, dtype=float_dtype)
+        self.cells = Cells(nodes,cells_connectivity,cell_types,float_dtype,int_dtype)
         
+        # Calculate Edges. Need this for rendering
+        edges = get_edges(self.cells)
+        self.edges = Edges(edges,float_dtype,int_dtype)
+        
+        # Calculate Faces 
         (face_connectivity,face_IDs),(cell_to_face,cell_to_face_ids) = get_faces(self.cells)
-        self.faces = Faces(face_connectivity,face_IDs)
+        self.faces = Faces(face_connectivity,face_IDs,float_dtype,int_dtype)
         
         # Topology arrays
         face_to_cell = get_face_to_cell(cell_to_face,cell_to_face_ids,len(face_IDs))
         cell_to_cell = get_cell_to_cell(cell_to_face,cell_to_face_ids,face_to_cell)
         
         self.topology.add('cell_to_face',cell_to_face,cell_to_face_ids)
-
+        self.topology.add('cell_to_cell',cell_to_cell)
+        self.topology.add('face_to_cell',cell_to_cell)
 
 if __name__ == '__main__':
     hex_nodes, vtk_connectivity = generate_vectorized_vtk_hex(1,1,2)
@@ -307,10 +313,11 @@ if __name__ == '__main__':
     
     elem_connectivity = np.concat((vtk_connectivity,tet_connectivity,wedge_connectivity),dtype= np.int32)
     cell_types = np.array([HEX.id,HEX.id,TETRA.id,WEDGE.id],np.int32)
-    mesh = Mesh(nodes,elem_connectivity,cell_types)
+    # mesh = Mesh(nodes,elem_connectivity,cell_types)
     #Only Hex
-    # mesh = Mesh(hex_nodes,vtk_connectivity,cell_types[:2])
+    mesh = Mesh(hex_nodes,vtk_connectivity,cell_types[:2])
     
+    print(mesh.edges.connectivity)
     
     # print(mesh.faces.faces)
     # print(mesh.faces.faces.shape)

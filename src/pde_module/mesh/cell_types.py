@@ -76,11 +76,17 @@ LOCALFACEORDERING_DICT = Dict.empty(
     key_type= nb.types.int32,
     value_type = nb.types.int32[:]
 )
+
+LOCAL_EDGE_ORDERING_DICT = Dict.empty(
+    key_type= nb.types.int32,
+    value_type = nb.types.int32[:,:]
+)
+
 for key in CELLTYPES_DICT.keys():
     LOCALFACEORDERING_DICT[np.int32(key)] = CELLTYPES_DICT[key].faces 
+    LOCAL_EDGE_ORDERING_DICT[np.int32(key)] = CELLTYPES_DICT[key].edges
     
     
-
 def count_nodeIDs(face):
     num_faces = face[0]
     count = 0
