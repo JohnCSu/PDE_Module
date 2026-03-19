@@ -1,6 +1,6 @@
 import numpy as np 
 import numba as nb
-from pde_module.mesh.cell_types import LOCAL_EDGE_ORDERING_DICT,CELLTYPES_DICT
+from pde_module.mesh.cell_types.cell_types import LOCAL_EDGE_ORDERING_DICT,CELLTYPES_DICT
 from pde_module.mesh.cell import Cells
 
 def get_edges(cells:Cells):    

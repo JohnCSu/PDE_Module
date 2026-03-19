@@ -1,12 +1,15 @@
 import numpy as np
 import numba as nb
-
+from ..cell import Cells
+from .functions import get_faces
 class Faces:
     """
     Represents faces (polygons) following a VTK-style 1D connectivity array.
     """
     faces:np.ndarray
     IDs:np.ndarray
+    float_dtype: np.ndarray
+    int_dtype: np.ndarray
     def __init__(self, connectivity,IDs,float_dtype = np.float32,int_dtype = np.int32):
         """
         Initializes a Faces object and computes normals, area, and centroids.
@@ -24,11 +27,15 @@ class Faces:
         (self.connectivity,self.IDs) =  connectivity,IDs 
         self.int_dtype = int_dtype
         self.float_dtype = float_dtype
+        
+    @classmethod
+    def from_cells(cls,cells:Cells):
+        assert isinstance(cells,Cells)
+        face_connectivity,face_IDs = get_faces(cells)
+        return cls(face_connectivity,face_IDs,cells.float_dtype,cells.int_dtype)
 
-
-
-
-    
+    def __len__(self):
+        return len(self.IDs)
 
 
 @nb.njit(cache = True)

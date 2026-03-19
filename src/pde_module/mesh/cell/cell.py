@@ -1,7 +1,8 @@
 import numpy as np
 import numba as nb
 from pde_module.mesh.utils import getIDs,check_IDs
-
+from .functions import check_cell_types
+from dataclasses import dataclass
 
 class Cells:
     """
@@ -12,7 +13,6 @@ class Cells:
     types:np.ndarray
     float_dtype:np.dtype
     int_dtype: np.dtype
-    cell_data:dict[int,tuple[int,np.ndarray]]
     def __init__(self,nodes: np.ndarray, cells_arr: np.ndarray,cell_type,float_dtype = np.float32,int_dtype = np.int32):
         """
         Initializes a Cells object and computes volumes and centroids.
@@ -29,11 +29,12 @@ class Cells:
         self.unique_cell_types,self.cell_type_count = np.unique(self.types,return_counts=True)
         
         self.IDs = getIDs(cells_arr)
-        
-        
         self.int_dtype = int_dtype
         self.float_dtype = float_dtype
         
         assert check_IDs(self.connectivity,self.IDs,len(nodes))
         assert self.IDs.shape == self.types.shape
+        check_cell_types(self.connectivity,self.IDs,self.types)
         
+    def __len__(self):
+        return len(self.IDs)

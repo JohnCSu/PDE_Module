@@ -1,6 +1,6 @@
 import numpy as np
-
-
+from ..cell import Cells
+from .functions import get_edges
 class Edges:
     '''
         Container to store Edge information
@@ -16,7 +16,15 @@ class Edges:
         self.int_dtype = int_dtype
         self.float_dtype = float_dtype
 
-
+    @classmethod
+    def from_cells(cls,cells:Cells):
+        assert isinstance(cells,Cells)
+        edges = get_edges(cells)
+        return cls(edges,cells.float_dtype,cells.int_dtype)
+    
+    def __len__(self):
+        return len(self.connectivity)
+    
     
     
             

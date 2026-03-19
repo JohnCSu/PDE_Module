@@ -1,5 +1,21 @@
 import numpy as np
 import numba as nb
+from pde_module.mesh.cell_types import CELLTYPES_DICT
+from typing import Optional
+
+def get_mesh_dimension(unique_cell_types:np.ndarray,dim:Optional[int] = None):
+    
+    cell_dims = [CELLTYPES_DICT[i].dimension for i in unique_cell_types]
+    
+    if dim is None:
+        return max(cell_dims)
+    else:
+        assert isinstance(dim,int), 'dim must be None or int'
+        assert 1 <= dim <= 3, 'dim must be between 1 and 3'
+        assert all((celltype_dim <= dim) for celltype_dim in cell_dims), 'All celltypes must be <= to the specified dim'
+        return dim
+
+
 
 @nb.njit(cache = True)
 def getIDs(connectivity:np.ndarray):
@@ -117,8 +133,6 @@ if __name__ == '__main__':
     nodes, vtk_connectivity = generate_vectorized_vtk_hex(2,2,2)
     print(f"Total Nodes: {len(nodes)}")
     ids = getIDs(vtk_connectivity)
-    # print(vtk_connectivity)
-    # print(check_IDs(vtk_connectivity,ids,len(nodes)))
     assert check_IDs(vtk_connectivity,ids,len(nodes))
     
     
