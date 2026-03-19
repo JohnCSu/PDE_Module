@@ -11,6 +11,10 @@ dependencies = [
     "pandas>=2.3.3",
     "scipy>=1.17.0",
     "warp-lang>=1.9.0",
+    "dearpygui>=1.10.0",
+    "meshio>=5.3.0",
+    "gmsh>=4.13.0",
+    "pyvista>=0.47.1",
 ]
 
 [dependency-groups]
