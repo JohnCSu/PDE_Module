@@ -16,7 +16,24 @@ def get_faces(cells:Cells,):
     (unique_faces,face_ids) = get_unique_faces(cell_face_array)
     return unique_faces,face_ids
 
-
+        
+def get_unique_faces(cell_face_array):
+    # Flatten to (C*K,F)
+    faces_array = cell_face_array.reshape(-1,cell_face_array.shape[-1])
+    #Sort Arrays and then find the unique faces 
+    sorted_faces = sort_rows(faces_array)
+    # Dont actually care about the unique sorted faces just the indices and inverse
+    _,unique_indices,unique_inverse =  np.unique(sorted_faces,axis = 0,return_index= True,return_inverse= True)
+    unique_faces = np.ascontiguousarray(faces_array[unique_indices],dtype= cell_face_array.dtype) 
+    # cell_to_face = unique_inverse.reshape(cell_face_array.shape[0:2])
+    if np.sum(unique_faces[0]) == -unique_faces.shape[-1]:# Remove the -1,-1,-1,-1... row if we have multiple cell 
+        unique_faces = unique_faces[1:]
+        # cell_to_face -= 1 #
+         
+    # print(cell_to_face)
+    # cell_to_face,cell_to_face_ids = flatten_and_filter_2D_array(cell_to_face)
+    unique_faces,face_ids = flatten_and_filter_2D_array(unique_faces)
+    return (unique_faces,face_ids)
 
 
 
@@ -65,21 +82,3 @@ def _get_3d_facets_(cells_connectivity,cellIDs,cellTypes,max_num_faces,max_num_n
                     
     return cell_face_array
 
-        
-def get_unique_faces(cell_face_array):
-    # Flatten to (C*K,F)
-    faces_array = cell_face_array.reshape(-1,cell_face_array.shape[-1])
-    #Sort Arrays and then find the unique faces 
-    sorted_faces = sort_rows(faces_array)
-    # Dont actually care about the unique sorted faces just the indices and inverse
-    _,unique_indices,unique_inverse =  np.unique(sorted_faces,axis = 0,return_index= True,return_inverse= True)
-    unique_faces = np.ascontiguousarray(faces_array[unique_indices],dtype= cell_face_array.dtype) 
-    # cell_to_face = unique_inverse.reshape(cell_face_array.shape[0:2])
-    if np.sum(unique_faces[0]) == -unique_faces.shape[-1]:# Remove the -1,-1,-1,-1... row if we have multiple cell 
-        unique_faces = unique_faces[1:]
-        # cell_to_face -= 1 #
-         
-    # print(cell_to_face)
-    # cell_to_face,cell_to_face_ids = flatten_and_filter_2D_array(cell_to_face)
-    unique_faces,face_ids = flatten_and_filter_2D_array(unique_faces)
-    return (unique_faces,face_ids)
