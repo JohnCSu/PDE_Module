@@ -50,7 +50,7 @@ def create_structured_field(mesh:UniformGridMesh,type:str,num_outputs:int,SoA = 
         return np.zeros(shape,dtype=mesh.float_dtype)
 
 
-def create_structured_warp_field(mesh:UniformGridMesh,type:str,num_outputs:int | tuple[int]):
+def create_structured_warp_field(mesh:UniformGridMesh,type:str,num_outputs:int | tuple[int],func:Optional[Callable] = None,**kwargs):
     assert isinstance(mesh,UniformGridMesh)
     match type:
         case 'node':
@@ -59,10 +59,21 @@ def create_structured_warp_field(mesh:UniformGridMesh,type:str,num_outputs:int |
             shape = tuple(n-1 for n in mesh.nodal_grid.shape[:-1])
         case _:
             raise ValueError('Valid types are: node andcell')
-        
+    
     if isinstance(num_outputs,int):
-        return wp.zeros(shape,dtype=vector(num_outputs,wp.dtype_from_numpy(mesh.float_dtype)))
+        dtype = vector(num_outputs,wp.dtype_from_numpy(mesh.float_dtype))
+        # return wp.zeros(shape,dtype=)
     elif isinstance(num_outputs,tuple):
+        dtype = matrix(num_outputs,wp.dtype_from_numpy(mesh.float_dtype))
         assert len(num_outputs) == 2
-        return wp.zeros(shape,dtype=matrix(num_outputs,wp.dtype_from_numpy(mesh.float_dtype)))
+        # return wp.zeros(shape,dtype=))
+
+    if func is not None:
+        assert callable(func)
+        arr = func(*mesh.meshgrid,**kwargs)    
+        return wp.array(data = arr,shape = shape, dtype=dtype)
+    else:
+        return wp.zeros(shape,dtype=dtype)
+    
+    
     
