@@ -8,7 +8,8 @@ wheels/
 
 # Virtual environments
 .venv
-
+.opencode
+AGENTS.md
 .ipynb
 test.ipynb
 todo.md
