@@ -39,7 +39,8 @@ A Viscous damping layer proportional to wave velocity is applied 10-15 nodes thi
 import numpy as np
 import warp as wp
 from matplotlib import pyplot as plt
-from pde_module.geometry.grid import Grid
+from pde_module.mesh import UniformGridMesh,create_structured_warp_field
+
 from pde_module.FDM.laplacian import Laplacian
 from pde_module.time_step.forwardEuler import ForwardEuler
 from pde_module.FDM import ImmersedBoundary,GridBoundary,ViscousDampingLayer
@@ -80,12 +81,12 @@ if __name__ == '__main__':
     print(dt)
     ghost_cells = 1
     
-    grid = Grid(dx = dx,num_points=(n*m,n,1),origin= (0.,0.,0.),ghost_cells=ghost_cells)
+    grid = UniformGridMesh(dx = dx,nodes_per_axis=(n*m,n,1),origin= (0.,0.,0.),ghost_cells=ghost_cells)
     
     W,H = m*L,L
     
-    u0 =grid.create_node_field(1)
-    v0 = grid.create_node_field(1)
+    u0 =create_structured_warp_field(grid,'node',1)
+    v0 = create_structured_warp_field(grid,'node',1)
     # Define Modules
     
     slot_BC = ImmersedBoundary(u0,dx,ghost_cells)
@@ -101,12 +102,12 @@ if __name__ == '__main__':
         # print(0.45 <= x <= 0.55)
         return np.logical_and(x_bool, y_bool ) 
     
-    slot_BC.from_bool_func(slot,grid.create_meshgrid('node'))
+    slot_BC.from_bool_func(slot,grid.meshgrid)
     slot_BC.finalize()
     slot_BC.dirichlet_BC('ALL',0.)
     slot_BC.show_bitmask()
     
-    BC = GridBoundary(u0,dx,ghost_cells,grid_coordinates=grid.node_coordinates)
+    BC = GridBoundary(u0,dx,ghost_cells,grid_coordinates=grid.nodal_grid)
     
     
     BC.dirichlet_BC('ALL',0.)
@@ -149,7 +150,7 @@ if __name__ == '__main__':
 
                 
 
-meshgrid = grid.create_meshgrid('node')
+meshgrid = grid.meshgrid
 X,Y,_ = [m.squeeze() for m in meshgrid]
 
 
@@ -174,5 +175,5 @@ def render(frame):
 
 
 ani = FuncAnimation(fig,render , frames= generator(), interval=50, repeat=False)
-ani.save('Defraction.gif', writer='ffmpeg', fps=20,dpi=60)
-# plt.show()
+# ani.save('Defraction.gif', writer='ffmpeg', fps=20,dpi=60)
+plt.show()

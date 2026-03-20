@@ -37,7 +37,15 @@ class GridBoundary(Boundary):
     '''
     def __init__(self,field,dx,ghost_cells:int,grid_coordinates = None):
         super().__init__(field,dx,ghost_cells)        
-        self.grid_coordinates = grid_coordinates
+        
+        if isinstance(grid_coordinates,np.ndarray):
+            self.grid_coordinates = wp.array(grid_coordinates,dtype=vector(3,wp.dtype_from_numpy(grid_coordinates.dtype)))
+        elif wp.types.is_array(grid_coordinates):
+            assert type_is_vector(grid_coordinates.dtype)
+            self.grid_coordinates = grid_coordinates 
+        else:
+            self.grid_coordinates = None
+            
         self.define_boundary_ijk_indices()
         self.define_groups()
         self.define_interior_adjacency()

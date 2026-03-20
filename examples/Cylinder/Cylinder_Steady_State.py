@@ -32,13 +32,12 @@ That at ~ Re =40, The flow transitions into unsteady state flow (karman vortex) 
 import numpy as np
 import warp as wp
 from matplotlib import pyplot as plt
-from pde_module.geometry import Grid
 from pde_module.FDM import Laplacian,Grad,GridBoundary,Divergence,FarField,ImmersedBoundary
 from pde_module.time_step import ForwardEuler 
 from warp.types import vector
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
-
+from pde_module.mesh import UniformGridMesh,create_structured_warp_field,to_pyvista
 wp.init()
 # wp.config.mode = "debug"
 
@@ -54,7 +53,7 @@ if __name__ == '__main__':
     D = 1.
     R = D/2
     centre = (L/2,H/2)
-    grid = Grid(dx = dx,num_points=(4*n,n,1),origin= (0.,0.,0.),ghost_cells=ghost_cells)
+    grid = UniformGridMesh(dx = dx,nodes_per_axis=(4*n,n,1),origin= (0.,0.,0.),ghost_cells=ghost_cells)
     
     # Runtime params 
     viscosity = 1/20 # Equiv to 1/Re
@@ -65,12 +64,12 @@ if __name__ == '__main__':
     farfield_sigma_max = 0.2/dt
     cyl = lambda x,y,z : (x-centre[0])**2 + (y-centre[1])**2 <= R**2
     
-    meshgrid = grid.create_meshgrid('node')
+    meshgrid = grid.meshgrid
     # Define Modules
     U_ref = wp.vec2f([U,0.])
     p_ref = vector(1,float)(0.)
     
-    u = grid.create_node_field(2)
+    u =  create_structured_warp_field(grid,'node',2)
     u.fill_(U_ref)
     u_BC = GridBoundary(u,dx,ghost_cells)
     u_BC.vonNeumann_BC('ALL',0.)
@@ -92,7 +91,7 @@ if __name__ == '__main__':
     u_div = Divergence(2,u.shape,dx,ghost_cells)
     u_step = ForwardEuler(u.dtype)
     
-    p = grid.create_node_field(1)
+    p = create_structured_warp_field(grid,'node',1)
     p_BC = GridBoundary(p,dx,ghost_cells)
     p_BC.vonNeumann_BC('ALL',0.)
     p_BC.dirichlet_BC('+X',0.)
@@ -144,7 +143,7 @@ if __name__ == '__main__':
     with wp.ScopedCapture() as capture:
         u,p = f(t,u,p)
     
-    meshgrid = grid.create_meshgrid('node')[:2]
+    meshgrid = grid.meshgrid[:2]
     X,Y = [m.squeeze() for m in meshgrid]
     fig, ax = plt.subplots()
     im = ax.imshow(u.numpy().squeeze()[:,:,0].T,origin='lower', animated=True, cmap='jet',vmin = 0.,vmax = 1.5*U)

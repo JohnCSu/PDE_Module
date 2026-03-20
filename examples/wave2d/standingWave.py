@@ -26,7 +26,7 @@ u(x_b,y_b,t) = 0
 import numpy as np
 import warp as wp
 from matplotlib import pyplot as plt
-from pde_module.geometry.grid import Grid
+from pde_module.mesh import UniformGridMesh,create_structured_warp_field
 from pde_module.FDM.laplacian import Laplacian
 from pde_module.time_step.forwardEuler import ForwardEuler
 from pde_module.FDM.boundary.gridBoundary import GridBoundary
@@ -52,11 +52,11 @@ if __name__ == '__main__':
     print(dt)
     ghost_cells = 1
     
-    grid = Grid(dx = 1/(n-1),num_points=(n,n,1),origin= (0.,0.,0.),ghost_cells=ghost_cells)
+    grid = UniformGridMesh(dx = dx,nodes_per_axis=(n,n,1),origin= (0.,0.,0.),ghost_cells=ghost_cells)
     IC = lambda x,y,z: A*(np.sin(m*np.pi*x/L)*np.sin(m*np.pi*y)/L)
     
-    u0 =grid.initial_condition('node',IC)
-    v0 = grid.create_node_field(1)
+    u0 =create_structured_warp_field(grid,'node',1,IC)
+    v0 = create_structured_warp_field(grid,'node',1)
     # Define Modules
     
     BC = GridBoundary(u0,dx,1)
@@ -77,23 +77,26 @@ if __name__ == '__main__':
             if i % 5 ==0:
                 yield i,u,v
         
-meshgrid,us = grid.get_plotting_for('node',u0)
-X,Y = [m.squeeze() for m in meshgrid]
-fig, ax = plt.subplots()
-im = ax.imshow(u0.numpy().squeeze().T,origin='lower', animated=True, cmap='jet',vmin = -A,vmax = A)
-# im = ax.contourf(X,Y,,cmap= 'jet')
-fig.colorbar(im, ax=ax, label='U mag')
+    meshgrid = grid.meshgrid
+    X,Y,_ = [m.squeeze() for m in meshgrid]
 
-x_plot = np.linspace(0,L,n)
+    fig, ax = plt.subplots()
+    # fig = plt.figure(figsize=(10, 7))
+    # ax = fig.add_subplot(111, projection='3d')
+    ax.set_facecolor('black')
+    im = ax.imshow(u0.numpy().squeeze().T,origin='lower',alpha = 1., animated=True, cmap='jet',vmin = -1,vmax = 1)
+    # im = ax.contourf(X,Y,,cmap= 'jet')
+    # fig.colorbar(im, ax=ax, label='U mag')
+    col = fig.colorbar(im, ax=ax, label='u',orientation="horizontal",location = 'bottom')
 
+    def render(frame):
+        # ax.clear()
+        step,us,vs = frame
+        ax.set_title(f'Defraction Step {step} t = {step*dt:.3f}')
+        us = us.numpy().squeeze()
+        im.set_data(us.T)
+        return im
 
-def render(frame):
-    step,us,vs = frame
-    ax.set_title(f'Standing Wave Step {step} Time {step*dt:.3F}')
-    # step += 1
-    im.set_data(us.numpy().squeeze().T)
-    return [im]
-
-
-ani = FuncAnimation(fig,render , frames= generator(), interval=50, repeat=False)
-plt.show()
+    ani = FuncAnimation(fig,render , frames= generator(), interval=50, repeat=False)
+    # ani.save('Defraction.gif', writer='ffmpeg', fps=20,dpi=60)
+    plt.show()

@@ -85,7 +85,8 @@ if __name__ == '__main__':
     
     
     """Runtime params""" 
-    viscosity = 1/500 # Equiv to 1/Re
+    Re = 500
+    viscosity = 1/Re # Equiv to 1/Re
     density = 1.
     M = 0.1
     cs = U/M
@@ -243,9 +244,15 @@ if __name__ == '__main__':
     plotter.add_mesh(pv_mesh, scalars = 'U_mag',show_edges = False, cmap= 'jet',clim = [0,1.5*U])
     plotter.view_xy()
     plotter.show(interactive_update=True)
-    title_actor = plotter.add_text("Time: 0.00 seconds", position='upper_left', font_size=12)
+    
+    # Text and Titles
+    
+    title_actor = plotter.add_title("Transient Cylinder", font_size=18)
+    timer_pos = (0.5,0.8)
+    timer = plotter.add_text("Time: 0.00 seconds", position=timer_pos, font_size=12,viewport = True)
+    timer.GetTextProperty().SetJustificationToCentered()
     # 3. Open the movie file
-    plotter.open_movie("sphere_animation.gif")
+    plotter.open_movie("transient_animation.gif")
     
     num_frames = 450
     step_per_frame = 400
@@ -257,7 +264,7 @@ if __name__ == '__main__':
         u_mag = np.sqrt(U_frame[:,:,0]**2 + U_frame[:,:,1]**2).reshape(len(grid.nodes))
         pv_mesh.point_data['U_mag'] = u_mag
         
-        title_actor.input = f"Time: {t:.2f} seconds"
+        timer.input = f"Time: {t:.2f} seconds at Re = {Re}"
         plotter.write_frame()
     
     plotter.close()
