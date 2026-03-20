@@ -6,7 +6,7 @@ class Faces:
     """
     Represents faces (polygons) following a VTK-style 1D connectivity array.
     """
-    faces:np.ndarray
+    connectivity:np.ndarray
     IDs:np.ndarray
     float_dtype: np.ndarray
     int_dtype: np.ndarray
