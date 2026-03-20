@@ -22,7 +22,8 @@ CFL_LIMIT = 0.5 - constant to ensure CFL is not violated set to 0.5
 import numpy as np
 import warp as wp
 from matplotlib import pyplot as plt
-from pde_module.geometry.grid import Grid
+from pde_module.mesh import UniformGridMesh,create_structured_warp_field,to_pyvista
+import pyvista as pv
 from pde_module.FDM.laplacian import Laplacian
 from pde_module.time_step.forwardEuler import ForwardEuler
 from pde_module.FDM.boundary.gridBoundary import GridBoundary
@@ -38,7 +39,7 @@ if __name__ == '__main__':
     dx = L/(n-1)
     ghost_cells = 1
     # x,y = np.linspace(0,1,n),np.linspace(0,1,n)
-    grid = Grid(dx = 1/(n-1),num_points=(n,n,1),origin= (0.,0.,0.),ghost_cells=ghost_cells)
+    grid = UniformGridMesh(dx = L/(n-1),nodes_per_axis=(n,n,1),origin= (0.,0.,0.),ghost_cells=ghost_cells)
     
     # Runtime params
     viscosity = 1/100
@@ -48,7 +49,7 @@ if __name__ == '__main__':
     
     # Define Modules
     
-    u = grid.create_node_field(2)
+    u = create_structured_warp_field(grid,'node',2)
     u_BC = GridBoundary(u,dx,ghost_cells)
     u_BC.dirichlet_BC('ALL',0.)
     u_BC.dirichlet_BC('+Y',1.,0)
@@ -59,7 +60,7 @@ if __name__ == '__main__':
     u_div = Divergence(2,u.shape,dx,ghost_cells)
     u_step = ForwardEuler(u.dtype)
     
-    p = grid.create_node_field(1)
+    p = create_structured_warp_field(grid,'node',1)
     p_BC = GridBoundary(p,dx,ghost_cells)
     p_BC.vonNeumann_BC('ALL',0.)
     p_grad = Grad(1,p.shape,dx,ghost_cells)
@@ -98,37 +99,39 @@ if __name__ == '__main__':
                 print(f't = {t:.3E},iter = {i}')
             
     
-    # Trim Values
-    meshgrid,us = grid.get_plotting_for('node',u)
-    u_plot = us[:,:,0]
-    v_plot = us[:,:,1]
+    pv_mesh = to_pyvista(grid)
+    
+    us = u.numpy()
+    u_plot = us[:,:,0,0]
+    v_plot = us[:,:,0,1]
     u_mag = np.sqrt(u_plot**2 + v_plot**2)
-    plt.contourf(*meshgrid,u_mag,cmap='jet',levels = np.linspace(0,1,20))
-    plt.colorbar()
-    plt.show()
+    pv_mesh.point_data['U_mag'] = u_mag.reshape(len(grid.nodes))
+    pv_mesh.point_data['U velocity'] = u_plot.reshape(len(grid.nodes))
+    pv_mesh.point_data['V velocity'] = v_plot.reshape(len(grid.nodes))
+    
+    plotter = pv.Plotter()
+    plotter.add_mesh(pv_mesh,scalars ='U_mag',show_edges = False, cmap= 'jet',clim = [0,1])
+    plotter.view_xy()
+    plotter.show()
     
     import pandas as pd
     v_benchmark = pd.read_csv(r'examples\v_velocity_results.csv',sep = ',')
     u_benchmark = pd.read_csv(r'examples\u_velocity_results.txt',sep= '\t')
     
-    
-    x_05 = meshgrid[0][:,n//2]
-    v_05 = v_plot[:,n//2]
-    
+    horizontal_line = pv_mesh.sample_over_line((0,L/2,0),(L,L/2,0),resolution= n)
+    v_05 = horizontal_line.point_data['V velocity']
     
     print(f"CFD max {v_05.max()}, Benchmark Max :{v_benchmark['100'].max()}")
     plt.plot(v_benchmark['%x'],v_benchmark['100'],'o',label = 'Ghia et al')
-    plt.plot(x_05,v_05)
+    plt.plot(horizontal_line.points[:,0],v_05)
     plt.show()
     
-    y_05 = meshgrid[1][n//2,:]
-    u_05 = u_plot[n//2,:]
     
+    vertical_line = pv_mesh.sample_over_line((L/2,0,0),(L/2,L,0),resolution= n)
+    u_05 = vertical_line.point_data['U velocity']
     
     print(f"CFD max {u_05.max()}, Benchmark Max :{u_benchmark['100'].max()}")
     plt.plot(u_benchmark['%y'],u_benchmark['100'],'o',label = 'Ghia et al')
-    plt.plot(y_05,u_05)
+    plt.plot(vertical_line.points[:,1],u_05)
     plt.show()
-    # plot
-    # def plot_2D_field(field,grid):
         

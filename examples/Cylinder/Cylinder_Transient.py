@@ -46,7 +46,8 @@ from matplotlib import pyplot as plt
 import numpy as np
 import warp as wp
 from matplotlib import pyplot as plt
-from pde_module.geometry import Grid
+from pde_module.mesh import UniformGridMesh,create_structured_warp_field,to_pyvista
+import pyvista as pv
 from pde_module.FDM import (Laplacian,
                             Grad,
                             GridBoundary,
@@ -65,6 +66,10 @@ wp.init()
 # wp.config.mode = "debug"
 
 if __name__ == '__main__':
+    '''
+    Geometry Set up
+    '''
+    
     n = 201
     H = 12
     L = 12
@@ -76,36 +81,37 @@ if __name__ == '__main__':
     D = 1
     R = D/2
     centre = (L/2,H/2)
-    grid = Grid(dx = dx,num_points=(4*n,n,1),origin= (0.,0.,0.),ghost_cells=ghost_cells)
+    grid = UniformGridMesh(dx = dx,nodes_per_axis=(4*n,n,1),origin= (0.,0.,0.),ghost_cells=ghost_cells)
     
-    # Runtime params 
+    
+    """Runtime params""" 
     viscosity = 1/500 # Equiv to 1/Re
     density = 1.
     M = 0.1
     cs = U/M
     c2 = cs**2
     
-    # beta = 0.3
     CFL_LIMIT = 0.1
     
     d_vis = CFL_LIMIT*float(dx**2/(viscosity))
     d_conv = CFL_LIMIT*dx/cs
     d_acoustic = CFL_LIMIT*dx/(cs + U)
     
-    # print(beta)
+    
     dt = min(d_vis,d_conv,d_acoustic)
     
     damping_eps = -0.02*(np.exp( 4*np.log(dx) - np.log(dt))/viscosity) # Use Logs for better numerical stability
     farfield_sigma_max = 0.3/dt
     
-    print(dt)
     cyl = lambda x,y,z : (x-centre[0])**2 + (y-centre[1])**2 <= R**2
-    # square = lambda x,y,z: np.maximum(np.abs(x-centre[0]),np.abs(y-centre[1])) <= R
     
-    meshgrid = grid.create_meshgrid('node')
+    meshgrid = grid.meshgrid
     
-    u = grid.create_node_field(2)
+    '''
+    Set up velocity Modules
+    '''
     
+    u = create_structured_warp_field(grid,'node',2)
     U_ref = [U,0.]
     u.fill_(U_ref)
     
@@ -136,8 +142,15 @@ if __name__ == '__main__':
     u_conv_div = Divergence((2,2),u.shape,dx,ghost_cells)
     
     u_damping = Laplacian(2,dx,ghost_cells)
+    U_ref = wp.vec2f(U_ref)
     
-    rho = grid.create_node_field(1)
+    u_farfield = FarField(2,15,2.,u.shape,dx,ghost_cells)
+    
+    '''
+    Set up Density Modules
+    '''
+    
+    rho = create_structured_warp_field(grid,'node',1)
     rho.fill_(1.)
     
     # print(rho.numpy().squeeze())
@@ -153,15 +166,11 @@ if __name__ == '__main__':
 
     rho_step = ForwardEuler(rho.dtype)
     
-    momentum_div = Divergence(2,u.shape,dx,ghost_cells)
-    momentum = scalarVectorMult(2)
-    
     rho_cyl = ImmersedBoundary(rho,dx,ghost_cells)
     rho_cyl.from_bool_func(cyl,meshgrid)
     rho_cyl.finalize()
     rho_cyl.vonNeumann_BC('ALL',0.)
     
-    print(np.all(rho_cyl.boundary_type == 2))
     @wp.func
     def get_p_op(rho:vector(1,float),c2:float,density:float):
         rho[0] = c2*(rho[0] - density)
@@ -170,17 +179,20 @@ if __name__ == '__main__':
     get_p = MapWise(get_p_op)
     get_u_from_m = MapWise(lambda m,rho: m/rho[0])
     p_grad = Grad(1,rho.shape,dx,ghost_cells)
-    
-    U_ref = wp.vec2f(U_ref)
     rho_ref = vector(1,float)(density)
-    u_farfield = FarField(2,15,2.,u.shape,dx,ghost_cells)
-    rho_farfield =FarField(1,15,2.,u.shape,dx,ghost_cells)
-    
+    rho_farfield =FarField(1,15,2.,rho.shape,dx,ghost_cells)
+    '''
+    Momentum modules
+    '''
+    momentum_div = Divergence(2,u.shape,dx,ghost_cells)
+    momentum = scalarVectorMult(2)
+
     np.set_printoptions(precision=1,suppress= False)
     t= 0.
     
-    
-    print(damping_eps)
+    '''
+    Forcing Term
+    '''
     def f(t,u,rho):
         u_ibm = u_cyl(u,fill_value = 0)
         rho_ibm = rho_cyl(rho,fill_value = density)
@@ -216,37 +228,36 @@ if __name__ == '__main__':
     
     u,rho = f(t,u,rho)
     t+=dt
-    # exit()
-    # assert False
+ 
     with wp.ScopedCapture() as capture:
         u,rho = f(t,u,rho)
     
-    meshgrid = grid.create_meshgrid('node')[:2]
-    X,Y = [m.squeeze() for m in meshgrid]
-    fig, ax = plt.subplots(figsize = (8,5))
+    
+    U_frame = u.numpy().squeeze()
+    u_mag = np.sqrt(U_frame[:,:,0]**2 + U_frame[:,:,1]**2).reshape(len(grid.nodes))
     
     
-    im = ax.imshow(u.numpy().squeeze()[:,:,0].T,origin='lower', animated=True, cmap='jet',aspect = 'equal')
-    col = fig.colorbar(im, ax=ax, label='U mag',orientation="horizontal",location = 'bottom')
+    pv_mesh = to_pyvista(grid)
+    pv_mesh.point_data['U_mag'] = u_mag
+    plotter = pv.Plotter()
+    plotter.add_mesh(pv_mesh, scalars = 'U_mag',show_edges = False, cmap= 'jet',clim = [0,1.5*U])
+    plotter.view_xy()
+    plotter.show(interactive_update=True)
+    title_actor = plotter.add_text("Time: 0.00 seconds", position='upper_left', font_size=12)
+    # 3. Open the movie file
+    plotter.open_movie("sphere_animation.gif")
     
-    def render(frame,step_per_frame,dt):
+    num_frames = 450
+    step_per_frame = 400
+    for frame in range(num_frames):
         t = frame*step_per_frame*dt
-        
         for i in range(step_per_frame):
             wp.capture_launch(capture.graph)
+        U_frame = u.numpy().squeeze()
+        u_mag = np.sqrt(U_frame[:,:,0]**2 + U_frame[:,:,1]**2).reshape(len(grid.nodes))
+        pv_mesh.point_data['U_mag'] = u_mag
         
-        new_u = u.numpy().squeeze()
-        u_mag = (new_u[:,:,0]**2 + new_u[:,:,1]**2)**0.5
-        ax.set_title(f'Step {frame*step_per_frame} Time = {t:.3f} Mach Number: {M} Re: {1/viscosity:.1F}')
-        im.set_data(u_mag.T)
-
-        im.set_clim(vmin=0, vmax=1.5*U)
-        print(f'frame {frame} Done!')
-        return [im]
-        
-    # Setting Are optimised for viewing! Gif Settings step_per_frame = 1500, frames = 150
-    step_per_frame = 400
-    ani = FuncAnimation(fig,render , frames= 450, interval=25, repeat=False,fargs = [step_per_frame,dt])
-    # ani.save('Transient_Cylinder.gif', writer='ffmpeg', fps=20,dpi=60)
-    plt.show()
+        title_actor.input = f"Time: {t:.2f} seconds"
+        plotter.write_frame()
     
+    plotter.close()
