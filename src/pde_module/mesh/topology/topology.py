@@ -2,68 +2,97 @@ import numpy as np
 import numba as nb
 from dataclasses import dataclass
 
-from numba import types
 
 @dataclass
 class Flat_array_container:
+    """Container for topology arrays.
+
+    Attributes:
+        array: The topology array.
+        offsets: Optional offset indices for variable-length data.
+    """
+
     array: np.ndarray
     offsets: np.ndarray | None
 
+
 class Topology:
-    '''Describes the connection between shapes of different dimensions e..g face to cell'''
+    """Describes connectivity between mesh entities of different dimensions.
+
+    Stores face-to-cell, cell-to-face, and cell-to-cell connectivity.
+
+    Attributes:
+        face_to_cell: Connectivity from faces to cells.
+        cell_to_face: Connectivity from cells to faces.
+        cell_to_cell: Connectivity from cells to neighboring cells.
+    """
+
     face_to_cell: Flat_array_container
     cell_to_face: Flat_array_container
     cell_to_cell: Flat_array_container
-    def add(self,name,array,ids= None):
-        setattr(self,name,Flat_array_container(array,ids))
-    
-    
-@nb.njit(cache = True)
-def get_face_to_cell(cell_to_face,cell_to_face_offsets,num_unique_faces):
-    face_to_cell = np.full((num_unique_faces,2),-1,dtype=cell_to_face.dtype)
-    
+
+    def add(self, name: str, array: np.ndarray, ids: np.ndarray | None = None) -> None:
+        """Add a topology array.
+
+        Args:
+            name: Name for the topology array.
+            array: The connectivity array.
+            ids: Optional offset indices.
+        """
+        setattr(self, name, Flat_array_container(array, ids))
+
+
+@nb.njit(cache=True)
+def get_face_to_cell(
+    cell_to_face: np.ndarray, cell_to_face_offsets: np.ndarray, num_unique_faces: int
+) -> np.ndarray:
+    """Build face-to-cell connectivity from cell-to-face data.
+
+    Args:
+        cell_to_face: Flattened cell-to-face array.
+        cell_to_face_offsets: Offset indices for each cell.
+        num_unique_faces: Number of unique faces.
+
+    Returns:
+        Array of shape (num_unique_faces, 2) with cell IDs for each face.
+    """
+    face_to_cell = np.full((num_unique_faces, 2), -1, dtype=cell_to_face.dtype)
+
     for cell_id in range(len(cell_to_face_offsets)):
         offset = cell_to_face_offsets[cell_id]
         num_faces = cell_to_face[offset]
-        for j in range(num_faces): # This part can only be done in serial
-            faceID = cell_to_face[offset + j + 1]
-            idx = np.int32(face_to_cell[faceID,0] != -1) # if True then idx = 1, if False then idx = 0
-            face_to_cell[faceID,idx] = cell_id
-    return face_to_cell
-    
-
-@nb.njit(cache = True)
-def get_cell_to_cell(cell_to_face,cell_to_face_offsets,face_to_cell):
-    # For now lets just assign -1 to boundary and then reduce
-    #This can be optimized to include only
-    cell_to_cell =np.full_like(cell_to_face,-1)
-    
-    for cell_id in range(len(cell_to_face_offsets)):
-        offset =cell_to_face_offsets[cell_id]
-        num_faces = cell_to_face[offset] 
-        cell_to_cell[offset] = num_faces
-        
         for j in range(num_faces):
-            faceID = cell_to_face[offset + j + 1]    
-            idx = np.int32(face_to_cell[faceID,0] == cell_id)
-            neighbor_cell_id = face_to_cell[faceID,idx]
-            cell_to_cell[offset+j+1] = neighbor_cell_id
-    
+            faceID = cell_to_face[offset + j + 1]
+            idx = np.int32(face_to_cell[faceID, 0] != -1)
+            face_to_cell[faceID, idx] = cell_id
+    return face_to_cell
+
+
+@nb.njit(cache=True)
+def get_cell_to_cell(
+    cell_to_face: np.ndarray, cell_to_face_offsets: np.ndarray, face_to_cell: np.ndarray
+) -> np.ndarray:
+    """Build cell-to-cell connectivity from cell-to-face data.
+
+    Args:
+        cell_to_face: Flattened cell-to-face array.
+        cell_to_face_offsets: Offset indices for each cell.
+        face_to_cell: Face-to-cell connectivity array.
+
+    Returns:
+        Cell-to-cell connectivity array.
+    """
+    cell_to_cell = np.full_like(cell_to_face, -1)
+
+    for cell_id in range(len(cell_to_face_offsets)):
+        offset = cell_to_face_offsets[cell_id]
+        num_faces = cell_to_face[offset]
+        cell_to_cell[offset] = num_faces
+
+        for j in range(num_faces):
+            faceID = cell_to_face[offset + j + 1]
+            idx = np.int32(face_to_cell[faceID, 0] == cell_id)
+            neighbor_cell_id = face_to_cell[faceID, idx]
+            cell_to_cell[offset + j + 1] = neighbor_cell_id
+
     return cell_to_cell
-                
-                    
-                 
-                
-                
-        
-        
-
-        
-        
-    
-        
-     
-
-
-
-
