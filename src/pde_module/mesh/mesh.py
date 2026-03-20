@@ -27,7 +27,7 @@ class Mesh:
     int_dtype: np.ndarray
     def __init__(self, nodes: np.ndarray, cells_connectivity: np.ndarray,cell_types:np.ndarray,dimension:Optional[int]= None,float_dtype = np.float32,int_dtype = np.int32):
         """
-        Initializes a Mesh object. Currently implemented for 3D only meshes
+        Initializes a Mesh object. This is struct with minimal methods.
         
         Args:
             nodes (np.ndarray): Shape (N, 3), coerced to np.float32.
@@ -50,3 +50,17 @@ class Mesh:
         self.int_dtype = int_dtype
         self.float_dtype = float_dtype
     
+    def add_group(
+                self, 
+                name:str, 
+                cell_ids: Optional[np.ndarray] = None,
+                face_ids: Optional[np.ndarray] = None,
+                edge_ids: Optional[np.ndarray] = None,
+                node_ids:Optional[np.ndarray] = None
+                ):
+        '''
+        Add Group of ids to mesh. Useful to use to define Boundary Conditions etc
+        '''
+        assert name not in self.groups.keys(), 'name for group already exists'
+        assert any(i is not None  for i in [cell_ids,face_ids,edge_ids,node_ids]),'Group has no members all are None!'
+        self.groups[name]= Group(name,cell_ids,face_ids,edge_ids,node_ids,int_dtype=self.int_dtype)
