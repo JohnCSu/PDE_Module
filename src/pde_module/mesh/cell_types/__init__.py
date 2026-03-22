@@ -1,6 +1,7 @@
 from .cell_types import (CELLTYPES_DICT,
                          LOCAL_EDGE_ORDERING_DICT,
-                         LOCALFACEORDERING_DICT,
+                         LOCAL_FACE_ORDERING_DICT,
+                         CELLTYPE_DIMENSION_DICT,
                          NUM_NODES_PER_CELL_DICT,
                          VERTEX,
                          EDGE,
