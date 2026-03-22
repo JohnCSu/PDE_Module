@@ -16,17 +16,14 @@ u(x_b,y_b,t) = 0
 This has an Analytic solution:
 
 u(x,y,t) = exp(-2.*alpha*pi^2*t)sin(pi*x)*sin(pi*y)
-
-
 '''
 import numpy as np
 import warp as wp
 from matplotlib import pyplot as plt
-from pde_module.geometry.grid import Grid
 from pde_module.FDM.laplacian import Laplacian
 from pde_module.time_step.forwardEuler import ForwardEuler
 from pde_module.FDM.boundary.gridBoundary import GridBoundary
-
+from pde_module.mesh import UniformGridMesh,create_structured_warp_field
 wp.init()
 
 
@@ -42,10 +39,9 @@ if __name__ == '__main__':
     ghost_cells = 1
     
     
-    grid = Grid(dx = 1/(n-1),num_points=(n,n,1),origin= (0.,0.,0.),ghost_cells=ghost_cells)
+    grid = UniformGridMesh(dx = dx,nodes_per_axis=(n,n,1),origin= (0.,0.,0.),ghost_cells=ghost_cells)
     IC = lambda x,y,z: (np.sin(np.pi*x)*np.sin(np.pi*y))
-    u =grid.initial_condition('node',IC)
-    
+    u = create_structured_warp_field(grid,'node',1,IC)
     # Define Modules
     
     BC = GridBoundary(u,dx,1)
@@ -67,7 +63,7 @@ if __name__ == '__main__':
         if i % 100 == 0:
             print(f'Max u = {u.numpy().max()} at t = {t},iter = {i}')
     
-meshgrid,us = grid.get_plotting_for('node',u)
-plt.contourf(*meshgrid,us,cmap ='jet',levels = 100)
+meshgrid = grid.meshgrid
+plt.contourf(*[m.squeeze() for m in meshgrid[:2]],u.numpy().squeeze(),cmap ='jet',levels = 100)
 plt.colorbar()
 plt.show()
