@@ -8,7 +8,7 @@ from pde_module.mesh.utils import (
 )
 from pde_module.mesh.cell import Cells
 from pde_module.mesh.cell_types.cell_types import (
-    LOCALFACEORDERING_DICT,
+    LOCAL_FACE_ORDERING_DICT,
     CELLTYPES_DICT,
     LOCAL_EDGE_ORDERING_DICT,
 )
@@ -36,7 +36,7 @@ def get_faces(cells: Cells) -> tuple[np.ndarray, np.ndarray]:
         cells.types,
         max_num_faces,
         max_num_nodes,
-        LOCALFACEORDERING_DICT,
+        LOCAL_FACE_ORDERING_DICT,
     )
 
     unique_faces, face_ids = get_unique_faces(cell_face_array)
