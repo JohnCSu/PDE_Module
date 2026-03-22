@@ -1,7 +1,7 @@
 ---
 description: Acts as an CAE Engineer using Simulation Software
 mode: subagent
-model: anthropic/claude-sonnet-4-20250514
+model: opencode-go/minimax-m2.7
 temperature: 0.1
 tools:
   write: false
