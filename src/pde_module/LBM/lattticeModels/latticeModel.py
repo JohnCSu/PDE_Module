@@ -10,17 +10,19 @@ class LatticeModel:
     directions:np.ndarray | wp_Array
     weights:np.ndarray | wp_Array
     dimension:int
+    int_dtype:np.dtype  = np.int32
+    float_dtype:np.dtype = np.float32
+    
     int_directions:np.ndarray | wp_Array = field(init= False)
     '''(N,D) array of Directions expressed as integer dtype. Used for indexing ops'''
     float_directions:np.ndarray | wp_Array = field(init= False)
     '''(N,D) array of Directions expressed as floating point dtype. Used in collision step'''
     sides: np.ndarray | wp_Array = field(init=False)
     '''(D,2,L) array of the directions associetd with each face. First axis is ordered as X,Y,Z then 2nd is -side and then +side'''
-    int_dtype:np.dtype | wp.DType = np.int32
-    float_dtype:np.dtype | wp.DType = np.float32
-    backend:str = field(init=False,default='numpy')
     num_distributions:int = field(init=False)
     num_directions_per_side: int = field(init=False)
+    backend:str = field(init=False,default='numpy')
+    
     
     def __post_init__(self):
         # Assumes Isotropic i.e each face should have the same number of discrete velocites in its normal direction
@@ -37,27 +39,34 @@ class LatticeModel:
                 self.sides[axis,j] = np.nonzero(self.int_directions[:,axis] == side)[0]
                 
     def to_warp(self):
-        self.int_dtype,self.float_dtype = wp.dtype_from_numpy(self.int_dtype),wp.dtype_from_numpy(self.float_dtype)
-        for attr,value in self.__dict__.items():
-            match attr:
-                case 'sides':
-                    self.sides = wp.array(self.sides,dtype=vector(self.num_directions_per_side,self.int_dtype))
-                case 'int_directions':
-                    self.int_directions = wp.array(self.int_directions,dtype=vector(self.dimension,self.int_dtype))
-                case 'float_directions':
-                    self.float_directions = wp.array(self.float_directions,dtype=vector(self.dimension,self.float_dtype))
-                case _:
-                    if isinstance(value,np.ndarray):
-                        setattr(self,attr,wp.array(value,dtype=wp.dtype_from_numpy(value.dtype)))
-                        
-        self.backend = 'warp'    
+        if self.backend != 'warp':
+            self.int_dtype,self.float_dtype = wp.dtype_from_numpy(self.int_dtype),wp.dtype_from_numpy(self.float_dtype)
+            for attr,value in self.__dict__.items():
+                match attr:
+                    case 'sides':
+                        self.sides = wp.array(self.sides,dtype=vector(self.num_directions_per_side,self.int_dtype))
+                    case 'int_directions':
+                        self.int_directions = wp.array(self.int_directions,dtype=vector(self.dimension,self.int_dtype))
+                    case 'float_directions':
+                        self.float_directions = wp.array(self.float_directions,dtype=vector(self.dimension,self.float_dtype))
+                    case _:
+                        if isinstance(value,np.ndarray):
+                            setattr(self,attr,wp.array(value,dtype=wp.dtype_from_numpy(value.dtype)))
+                            
+            self.backend = 'warp'    
     
     def to_numpy(self):
-        self.int_dtype,self.float_dtype = wp.dtype_to_numpy(self.int_dtype),wp.dtype_to_numpy(self.float_dtype)
-        for attr,value in self.__dict__.items():
-            if wp.types.is_array(value):
-                setattr(self,attr,value.numpy())
-        self.backend = 'numpy'    
+        if self.backend != 'numpy':
+            self.int_dtype,self.float_dtype = wp.dtype_to_numpy(self.int_dtype),wp.dtype_to_numpy(self.float_dtype)
+            for attr,value in self.__dict__.items():
+                if wp.types.is_array(value):
+                    setattr(self,attr,value.numpy())
+            self.backend = 'numpy'    
+
+
+
+
+
 
 if __name__ == '__main__':    
     d2q9_directions = np.array([
