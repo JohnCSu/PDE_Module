@@ -2,7 +2,6 @@ from .dummy_types import *
 from warp.types import vector, matrix
 from collections.abc import Iterable
 
-
 def get_unique_key(dictionary: dict, base_name: str) -> str:
     """Generate a unique key for a dictionary by appending a counter if needed."""
     candidate = base_name
@@ -51,3 +50,5 @@ def dtype_from_shape(shape: int | Iterable[int], float_dtype) -> wp_Vector | wp_
         return vector(length=shape[0], dtype=float_dtype)
     else:
         return matrix(shape=shape, dtype=float_dtype)
+
+

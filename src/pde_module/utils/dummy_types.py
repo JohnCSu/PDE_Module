@@ -2,6 +2,9 @@ from typing import NewType, Any,TypeVar
 import numpy as np
 from warp import Kernel,Function
 
+
+wp_Dtype = NewType('wp_Dtype',np.dtype)
+
 wp_Vector = NewType("wp_Vector", np.ndarray)
 """Dummy type for warp vectors."""
 
@@ -24,6 +27,7 @@ wp_Function = NewType("wp_Function", Function)
 """Dummy type for warp functions."""
 
 __all__ = [
+    "wp_Dtype",
     "wp_Vector",
     "wp_Matrix",
     "wp_Array",
