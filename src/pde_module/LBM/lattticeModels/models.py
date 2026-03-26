@@ -1,6 +1,7 @@
 from .latticeModel import LatticeModel
 import numpy as np
 
+
 def D2Q9(int_dtype=np.int32,float_dtype=np.float32):
     d2q9_directions = np.array([
         [ 0,  0], # 0: Center (rest)
@@ -21,3 +22,4 @@ def D2Q9(int_dtype=np.int32,float_dtype=np.float32):
     ],float_dtype)
     
     return LatticeModel(d2q9_directions,d2q9_weights,2,int_dtype,float_dtype)
+
