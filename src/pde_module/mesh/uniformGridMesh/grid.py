@@ -20,6 +20,7 @@ class UniformGridMesh(Mesh):
         origin: Origin point of the grid.
         nodes_per_axis: Number of nodes per axis.
         num_cells: Total number of cells.
+        num_nodes: Total number of nodes
         meshgrid: List of coordinate arrays for each dimension.
         coordinate_vectors: Coordinate vectors for each axis.
     """
@@ -33,6 +34,7 @@ class UniformGridMesh(Mesh):
     origin: np.ndarray
     nodes_per_axis: tuple[int, ...]
     num_cells: int
+    num_nodes: int
     meshgrid: list[np.ndarray]
     coordinate_vectors: tuple[np.ndarray, ...]
 
@@ -79,7 +81,8 @@ class UniformGridMesh(Mesh):
         cells_connectivity, cell_types = cell_connectivity_and_type(
             self.nodes_per_axis, self.num_cells, dimension, int_dtype
         )
-
+        
+        self.num_nodes = prod(self.nodes_per_axis)
         super().__init__(
             self.nodal_grid.reshape(-1, 3),
             cells_connectivity,
