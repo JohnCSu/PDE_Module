@@ -115,8 +115,8 @@ if __name__ == '__main__':
     plotter.show()
     
     import pandas as pd
-    v_benchmark = pd.read_csv(r'examples\v_velocity_results.csv',sep = ',')
-    u_benchmark = pd.read_csv(r'examples\u_velocity_results.txt',sep= '\t')
+    v_benchmark = pd.read_csv(r'examples/v_velocity_results.csv',sep = ',')
+    u_benchmark = pd.read_csv(r'examples/u_velocity_results.txt',sep= '\t')
     
     horizontal_line = pv_mesh.sample_over_line((0,L/2,0),(L,L/2,0),resolution= n)
     v_05 = horizontal_line.point_data['V velocity']
