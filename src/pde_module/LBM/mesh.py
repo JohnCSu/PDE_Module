@@ -32,9 +32,9 @@ class LBM_Mesh(UniformGridMesh):
            latticeModel = get_latticeModel(latticeModel,int_dtype,float_dtype)
         else:
             assert isinstance(latticeModel,LatticeModel)
-        
+            
         self.latticeModel = latticeModel
-        self.grid_shape = tuple(n-1 if n > 1 else 1 for n in self.nodes_per_axis)
+        self.grid_shape = tuple(n if n > 1 else 1 for n in self.nodes_per_axis)
         assert self.latticeModel.dimension == sum(1 for i in nodes_per_axis if i > 1), 'Lattice Model must match dimension of mesh'
         
 
@@ -43,9 +43,9 @@ class LBM_Mesh(UniformGridMesh):
         '''Creates an SoA array of flat array i.e O,C where O is number of outputs and C is number of cells'''
         match backend:
             case 'warp':
-                return wp.full((num_outputs,self.num_cells),value = initial_value,dtype=wp.dtype_from_numpy(self.float_dtype))
+                return wp.full((num_outputs,self.num_nodes),value = initial_value,dtype=wp.dtype_from_numpy(self.float_dtype))
         
             case 'numpy':
-                return np.full((num_outputs,self.num_cells),initial_value,dtype=self.float_dtype)
+                return np.full((num_outputs,self.num_nodes),initial_value,dtype=self.float_dtype)
             case _:
                 raise ValueError()
