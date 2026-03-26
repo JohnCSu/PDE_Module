@@ -6,7 +6,7 @@ from pde_module.LBM.lattticeModels.latticeModel import LatticeModel
 from pde_module.stencil.hooks import *
 from pde_module.LBM.LBM_Stencil import LBM_Stencil
 from pde_module.utils import ijk_to_global_c
-from .utils import wp_array_to_vec_or_mat
+from .utils import array_to_vec_or_mat
 
 class BGK_collision(LBM_Stencil):
     
@@ -23,17 +23,14 @@ class BGK_collision(LBM_Stencil):
         self.f_out = self.create_output_array(f_in)
         
     def forward(self, f_in,tau):
-        wp.launch(self.kernel,dim = self.grid_shape,inputs=[f_in,1/tau],outputs= [self.f_out])
+        wp.launch(self.kernel,dim = f_in.shape[-1],inputs=[f_in,1./tau],outputs= [self.f_out])
         return self.f_out
         
 
-
-
-
 def create_BGK_collision(latticeModel:LatticeModel,num_distributions,dimension,grid_shape,float_dtype):
     latticeModel.to_warp()
-    float_velocity_directions = wp_array_to_vec_or_mat(latticeModel.float_directions) # Matrix
-    weights = wp_array_to_vec_or_mat(latticeModel.weights) #Vector
+    float_velocity_directions = latticeModel.float_directions
+    weights = latticeModel.weights 
     
     grid_shape = wp.vec3i(grid_shape)
     
@@ -43,21 +40,18 @@ def create_BGK_collision(latticeModel:LatticeModel,num_distributions,dimension,g
         return weight*rho*(1. + 3.*ei_dot_u + 4.5*ei_dot_u*ei_dot_u - 1.5*wp.dot(u,u))
     
     
-    
-    
     @wp.kernel
     def BGK_collision_kernel(f_in:wp.array2d(dtype =float_dtype),
                              inv_tau:float_dtype,
                              f_out:wp.array2d(dtype =float_dtype)):
-        i,j,k = wp.tid()
-        global_id = ijk_to_global_c(i,j,k,grid_shape[0],grid_shape[1],grid_shape[2])
+        global_id = wp.tid()
+        # global_id = ijk_to_global_c(i,j,k,grid_shape[0],grid_shape[1],grid_shape[2])
         
         rho = float_dtype(0.0)
         for f in range(num_distributions):
             rho += f_in[f,global_id]
 
         u = vector(float_dtype(0.),length = dimension)
-        
         for f in range(num_distributions):
             u += f_in[f,global_id]*float_velocity_directions[f]
         u /= rho
