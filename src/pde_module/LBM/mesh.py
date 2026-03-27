@@ -17,6 +17,7 @@ class LBM_Mesh(UniformGridMesh):
     '''Cell Shape of Mesh as 3-tuple'''
     num_cells:int
     latticeModel:LatticeModel
+    flags:np.ndarray
     def __init__(self,
                 latticeModel:LatticeModel | str,
                 dx: float,
@@ -37,6 +38,7 @@ class LBM_Mesh(UniformGridMesh):
         self.grid_shape = tuple(n if n > 1 else 1 for n in self.nodes_per_axis)
         assert self.latticeModel.dimension == sum(1 for i in nodes_per_axis if i > 1), 'Lattice Model must match dimension of mesh'
         
+        self.flags = np.zeros(self.grid_shape,dtype=np.uint8)
 
 
     def create_field(self,num_outputs:int,initial_value:float = 0.,backend= 'warp'):
