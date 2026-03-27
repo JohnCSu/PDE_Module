@@ -1,5 +1,5 @@
 from .utils import tuplify, dtype_from_shape, SignatureMismatchError
-from .warp_utils import ijk_to_global_c,xijk_to_global_c
+from .warp_utils import ijk_to_global_c,xijk_to_global_c,global_to_ijk_c
 from .dummy_types import (
     wp_Matrix,
     wp_Vector,
