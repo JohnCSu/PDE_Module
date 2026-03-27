@@ -26,7 +26,6 @@ if __name__ == '__main__':
     L_lat = n
     v_lat = U*L_lat/Re
     tau = v_lat/(1/3.) +0.5
-    # tau = 1
     print(tau)
     
     # Define Modules
