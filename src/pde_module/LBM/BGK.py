@@ -5,7 +5,7 @@ from pde_module.utils.dummy_types import wp_Array,wp_Vector,wp_Matrix
 from pde_module.LBM.lattticeModels.latticeModel import LatticeModel
 from pde_module.stencil.hooks import *
 from pde_module.LBM.LBM_Stencil import LBM_Stencil
-from pde_module.utils import ijk_to_global_c
+from pde_module.utils import ijk_to_global_c,global_to_ijk_c
 from .utils import array_to_vec_or_mat
 
 class BGK_collision(LBM_Stencil):
@@ -45,19 +45,16 @@ def create_BGK_collision(latticeModel:LatticeModel,num_distributions,dimension,g
                              inv_tau:float_dtype,
                              f_out:wp.array2d(dtype =float_dtype)):
         global_id = wp.tid()
-        # global_id = ijk_to_global_c(i,j,k,grid_shape[0],grid_shape[1],grid_shape[2])
-        
-        rho = float_dtype(0.0)
-        for f in range(num_distributions):
-            rho += f_in[f,global_id]
 
+        rho = float_dtype(0.0)
         u = vector(float_dtype(0.),length = dimension)
         for f in range(num_distributions):
+            rho += f_in[f,global_id]
             u += f_in[f,global_id]*float_velocity_directions[f]
         u /= rho
-        
+    
         for f in range(num_distributions):
             feq = BGK_feq(weights[f],rho,u,float_velocity_directions[f])
             f_out[f,global_id] = f_in[f, global_id] - inv_tau * (f_in[f,global_id] - feq)
-
+    
     return BGK_collision_kernel
