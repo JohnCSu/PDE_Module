@@ -14,7 +14,7 @@ def get_latticeModel(latticeModel:str,int_dtype,float_dtype):
 
 class LBM_Mesh(UniformGridMesh):
     grid_shape: tuple[int] # This is cell NOT node
-    '''Cell Shape of Mesh as 3-tuple'''
+    '''node Shape of Mesh as 3-tuple'''
     num_cells:int
     latticeModel:LatticeModel
     flags:np.ndarray
