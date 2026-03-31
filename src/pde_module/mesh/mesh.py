@@ -23,7 +23,6 @@ class Mesh:
         edges: Edges object with connectivity.
         topology: Topology object describing connectivity relationships.
         dimension: Dimension of the mesh (1, 2, or 3).
-        groups: Dictionary of named groups for BCs etc.
         float_dtype: NumPy float dtype for coordinates.
         int_dtype: NumPy int dtype for indices.
     """
@@ -34,7 +33,6 @@ class Mesh:
     edges: Edges
     topology: Topology
     dimension: int
-    groups: dict[str, Group]
     float_dtype: np.dtype
     int_dtype: np.dtype
 
@@ -65,37 +63,36 @@ class Mesh:
         self.edges = Edges.from_cells(self.cells)
         self.faces = Faces.from_cells(self.cells)
 
-        self.groups = {}
         self.topology = Topology()
         self.int_dtype = int_dtype
         self.float_dtype = float_dtype
 
-    def add_group(
-        self,
-        name: str,
-        cell_ids: Optional[np.ndarray] = None,
-        face_ids: Optional[np.ndarray] = None,
-        edge_ids: Optional[np.ndarray] = None,
-        node_ids: Optional[np.ndarray] = None,
-    ) -> None:
-        """Add a group of IDs to the mesh.
+    # def add_group(
+    #     self,
+    #     name: str,
+    #     cell_ids: Optional[np.ndarray] = None,
+    #     face_ids: Optional[np.ndarray] = None,
+    #     edge_ids: Optional[np.ndarray] = None,
+    #     node_ids: Optional[np.ndarray] = None,
+    # ) -> None:
+    #     """Add a group of IDs to the mesh.
 
-        Useful for defining boundary conditions and other subsets.
+    #     Useful for defining boundary conditions and other subsets.
 
-        Args:
-            name: Name of the group.
-            cell_ids: Array of cell IDs in the group.
-            face_ids: Array of face IDs in the group.
-            edge_ids: Array of edge IDs in the group.
-            node_ids: Array of node IDs in the group.
+    #     Args:
+    #         name: Name of the group.
+    #         cell_ids: Array of cell IDs in the group.
+    #         face_ids: Array of face IDs in the group.
+    #         edge_ids: Array of edge IDs in the group.
+    #         node_ids: Array of node IDs in the group.
 
-        Raises:
-            AssertionError: If name exists or all IDs are None.
-        """
-        assert name not in self.groups.keys(), "name for group already exists"
-        assert any(i is not None for i in [cell_ids, face_ids, edge_ids, node_ids]), (
-            "Group has no members all are None!"
-        )
-        self.groups[name] = Group(
-            name, cell_ids, face_ids, edge_ids, node_ids, int_dtype=self.int_dtype
-        )
+    #     Raises:
+    #         AssertionError: If name exists or all IDs are None.
+    #     """
+    #     assert name not in self.groups.keys(), "name for group already exists"
+    #     assert any(i is not None for i in [cell_ids, face_ids, edge_ids, node_ids]), (
+    #         "Group has no members all are None!"
+    #     )
+    #     self.groups[name] = Group(
+    #         name, cell_ids, face_ids, edge_ids, node_ids, int_dtype=self.int_dtype
+    #     )
