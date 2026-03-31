@@ -33,6 +33,7 @@ class UniformGridMesh(Mesh):
     dimension: int
     origin: np.ndarray
     nodes_per_axis: tuple[int, ...]
+    flags:np.ndarray
     num_cells: int
     num_nodes: int
     meshgrid: list[np.ndarray]
@@ -91,6 +92,19 @@ class UniformGridMesh(Mesh):
             float_dtype,
             int_dtype,
         )
+        
+        
+        self.flags = np.zeros(self.grid_shape,dtype=np.uint8)
+        self.groups ={
+            '-X':(0,slice(None),slice(None)),
+            '+X':(-1,slice(None),slice(None)),
+            
+            '-Y':(slice(None),0,slice(None)),
+            '+Y':(slice(None),-1,slice(None)),
+            
+            '-Z':(slice(None),slice(None),0),
+            '+Z':(slice(None),slice(None),-1),
+        }
 
 
 if __name__ == "__main__":

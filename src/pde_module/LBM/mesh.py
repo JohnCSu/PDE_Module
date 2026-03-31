@@ -38,8 +38,8 @@ class LBM_Mesh(UniformGridMesh):
         self.grid_shape = tuple(n if n > 1 else 1 for n in self.nodes_per_axis)
         assert self.latticeModel.dimension == sum(1 for i in nodes_per_axis if i > 1), 'Lattice Model must match dimension of mesh'
         
-        self.flags = np.zeros(self.grid_shape,dtype=np.uint8)
-
+       
+        
 
     def create_field(self,num_outputs:int,initial_value:float = 0.,backend= 'warp'):
         '''Creates an SoA array of flat array i.e O,C where O is number of outputs and C is number of cells'''
