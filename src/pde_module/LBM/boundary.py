@@ -17,15 +17,13 @@ class Boundary(LBM_Stencil):
     '''
     Implements Full-Step Bounceback BC i.e. applies BC Strictly AFTER Streaming
     '''
-    
+    sigma:float = 0.1
     def __init__(self, latticeModel, grid_shape):
         super().__init__(latticeModel, grid_shape)    
         self.flags = np.zeros(self.grid_shape,dtype=np.uint8)
         
-        
         self.BC_velocity = np.full(self.grid_shape + (self.dimension,),np.nan,dtype= self.latticeModel.float_dtype)
         self.BC_density = np.full(self.grid_shape,np.nan,dtype= self.latticeModel.float_dtype)
-        
         
         self.groups ={
             '-X':(0,slice(None),slice(None)),
@@ -41,6 +39,14 @@ class Boundary(LBM_Stencil):
         
 
     def set_BC(self,ids:str | tuple[np.ndarray | int | slice],boundary_type,velocity = None, density = None):
+        '''
+        Set Boundary Condition Values for node Ids or string.
+        
+        If density is set to a negative value, then damping is added 
+        
+        
+        
+        '''
         
         if boundary_type == 2 or boundary_type == 3:
             assert (velocity is not None or density is not None)
@@ -82,6 +88,7 @@ class Boundary(LBM_Stencil):
                                              self.latticeModel.weights,
                                              self.dimension,
                                              self.grid_shape,
+                                             self.sigma,
                                              self.latticeModel.float_dtype)
         
         self.f_out = self.create_output_array(f_in)
@@ -95,7 +102,7 @@ class Boundary(LBM_Stencil):
                   outputs = [self.f_out])
         return self.f_out
 
-def create_boundary_kernel(num_distributions,opposite_index,int_directions,float_directions,weights,dimension,grid_shape,float_dtype):
+def create_boundary_kernel(num_distributions,opposite_index,int_directions,float_directions,weights,dimension,grid_shape,sigma,float_dtype):
     grid_shape = wp.vec3i(grid_shape)
     adjacent_ijk = get_adjacent_ijk(dimension,grid_shape)
     BGK_feq = create_BGK_feq(dimension,float_dtype)
@@ -142,17 +149,12 @@ def create_boundary_kernel(num_distributions,opposite_index,int_directions,float
             u += f_in[f,fluid_adj]*float_directions[f]
         u /= rho
         
+        u_wall = wp.where(wp.isnan(u_wall[0]),u,u_wall)
+        rho_wall =  wp.where(wp.isnan(rho_wall),rho,rho_wall)
+        is_relaxed_equil = wp.where(rho_wall < float_dtype(0.),True,False)
+        rho_wall = wp.abs(rho_wall)
         
-        if wp.isnan(u_wall[0]):
-            u_wall = u
         
-        if wp.isnan(rho_wall):
-            rho_wall = rho
-        
-        # if j == (grid_shape[1] - 1):
-        #     wp.printf('%f:.1f %d \n',rho_wall,j)
-            
-        # if flags[i,j,k] != EQUILIBRIUM:
         for f in range(num_distributions):
             opp_f = opposite_index[f]
             opp_vel = int_directions[opp_f]
@@ -161,16 +163,19 @@ def create_boundary_kernel(num_distributions,opposite_index,int_directions,float
             bc_is_moving = (flags[i,j,k] == MOVING_WALL)
             bc_is_equil = (flags[i,j,k] == EQUILIBRIUM)
 
+            f_opp = f_in[opp_f,global_id]
             
-            new_opp_f = wp.where(flags[ni,nj,nk] == FLUID,f_in[f,global_id],f_in[opp_f,global_id]) # if opp dir is Fluiod Do Bounceback False basically do nothing
+            
+            # BounceBack BC
+            new_opp_f = wp.where(flags[ni,nj,nk] == FLUID,f_in[f,global_id],f_opp) # if opp dir is Fluiod Do Bounceback False basically do nothing
+            # Moving Wall BC
             new_opp_f -= wp.where(adj_is_fluid and bc_is_moving,2.*3.*weights[f]*rho_wall*wp.dot(float_directions[f],u_wall),float_dtype(0.)) # If moving wall as well add forcing term
-            new_opp_f = wp.where(bc_is_equil,BGK_feq(weights[opp_f],rho_wall,u_wall,float_directions[opp_f]),new_opp_f) # If Equil BC, replace with equilibrium
-            f_out[opp_f,global_id] = new_opp_f
-        # else:
-        #     for f in range(num_distributions):
-        #         f_out[f,global_id] = 
-                # f_out[f,global_id] = f_out[f,fluid_adj]
                 
+            # Equilibrium BC
+            new_opp_f = wp.where(bc_is_equil,BGK_feq(weights[opp_f],rho_wall,u_wall,float_directions[opp_f]),new_opp_f) # If Equil BC, replace with equilibrium
+            new_opp_f = wp.where(bc_is_equil and is_relaxed_equil,new_opp_f*sigma  + (1.-sigma)*f_opp,new_opp_f) # Relaxed Equil BC, Which is better for density Inlet/Outlet
+            f_out[opp_f,global_id] = new_opp_f
+        
             # # The Above is equivalent to below (avoids if statements)            
             # if adj_is_fluid:
             #     f_out[opp_f,global_id] = f_in[f,global_id]
