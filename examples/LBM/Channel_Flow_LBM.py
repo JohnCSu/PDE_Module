@@ -40,8 +40,8 @@ if __name__ == '__main__':
     boundary = Boundary.from_LBM_Mesh(lbm)
     
     u_wall = (U,0.)
-    boundary.set_BC('-X',2,velocity= u_wall)
-    boundary.set_BC('+X',3,density = 1.)
+    boundary.set_BC('-X',3,velocity= u_wall)
+    boundary.set_BC('+X',3,density=-1.)
     boundary.set_BC('+Y',1)
     boundary.set_BC('-Y',1)
     
@@ -62,9 +62,6 @@ if __name__ == '__main__':
         
         u[0,tid] = u_var[0]/rho_var
         u[1,tid] = u_var[1]/rho_var
-        
-        
-    
         
     # print(boundary.flags.squeeze())
     u_np = u.numpy()/U
