@@ -30,7 +30,7 @@ class BGK_collision(LBM_Stencil):
 
 
 
-def create_BGK_feq(dimension:int,float_dtype:wp_Dtype):
+def create_BGK_feq(dimension:int,float_dtype:wp_Dtype) -> Callable:
     @wp.func
     def BGK_feq(weight:float_dtype,rho:float_dtype,u:vector(dimension,float_dtype),ei:vector(dimension,float_dtype)):
         ei_dot_u = wp.dot(ei,u)
