@@ -100,7 +100,7 @@ if __name__ == '__main__':
     u_chart= pv.Chart2D()
     vertical_line = pv_mesh.sample_over_line((L/2,0,0),(L/2,L,0),resolution= n)
     u_05 = vertical_line.point_data['U velocity']
-    u_line = u_chart.line(horizontal_line.points[:,0],v_05,label = 'LBM')
+    u_line = u_chart.line(vertical_line.points[:,0],u_05,label = 'LBM')
     u_bench = u_chart.line(u_benchmark['%y'],u_benchmark['100'],'r',label = 'Ghia et al')
     plotter.add_chart(u_chart)
     
@@ -145,22 +145,3 @@ if __name__ == '__main__':
     plotter.close()
     
     
-    
-    # horizontal_line = pv_mesh.sample_over_line((0,L/2,0),(L,L/2,0),resolution= n)
-    # v_05 = horizontal_line.point_data['V velocity']
-    
-    # print(f"CFD max {v_05.max()}, Benchmark Max :{v_benchmark['100'].max()}")
-    # plt.plot(v_benchmark['%x'],v_benchmark['100'],'o',label = 'Ghia et al')
-    # plt.plot(horizontal_line.points[:,0],v_05)
-    # plt.show()
-    
-    
-    # vertical_line = pv_mesh.sample_over_line((L/2,0,0),(L/2,L,0),resolution= n)
-    # u_05 = vertical_line.point_data['U velocity']
-    
-    # print(f"CFD max {u_05.max()}, Benchmark Max :{u_benchmark['100'].max()}")
-    # plt.plot(u_benchmark['%y'],u_benchmark['100'],'o',label = 'Ghia et al')
-    # plt.plot(vertical_line.points[:,1],u_05)
-    # plt.show()
-        
-# pv_mesh.plot(scalars = 'u_mag',cmap= 'jet',clim = [0,1])
