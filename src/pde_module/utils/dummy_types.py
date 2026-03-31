@@ -4,6 +4,7 @@ from warp import Kernel,Function
 
 
 wp_Dtype = NewType('wp_Dtype',np.dtype)
+'''Dummy type for warp Dtypes'''
 
 wp_Vector = NewType("wp_Vector", np.ndarray)
 """Dummy type for warp vectors."""
