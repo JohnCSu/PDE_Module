@@ -1,0 +1,3 @@
+# Tests For Debugging
+
+Because simulations can always be slightly off due to arithmetic error, these tests do not test accuracy of any solvers in pde_module. Rather these ensure that all models and kernels are working (e.g. no error in imports or kernel compilation). Essentially they are copies of examples but without animations and only for a few iterations. For actual benchmarks and behaviour of solvers to real world examples see examples folder
