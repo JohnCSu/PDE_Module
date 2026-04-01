@@ -34,8 +34,8 @@ class Boundary(ExplicitUniformGridStencil):
 
     boundary_type: np.ndarray
     boundary_value: np.ndarray
-    groups: dict[str, np.ndarray[int]] = dict()
-    func_groups: dict[str, FunctionBC] = dict()
+    groups: dict[str, np.ndarray[int]] 
+    func_groups: dict[str, FunctionBC]
 
     def __init__(self, field: wp.array, dx: float, ghost_cells: int) -> None:
         inputs = self.get_shape_from_dtype(field.dtype)
@@ -49,6 +49,8 @@ class Boundary(ExplicitUniformGridStencil):
         self.grid_shape = field.shape
         self.dimension = self.calculate_dimension_from_grid_shape(self.grid_shape)
 
+        self.groups = {}
+        self.func_groups = {}
     def define_boundary_value_and_type_arrays(self, indices: np.ndarray) -> None:
         """Create boundary_value and boundary_type arrays.
 

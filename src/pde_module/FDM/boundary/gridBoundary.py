@@ -163,8 +163,10 @@ class GridBoundary(Boundary):
         self.warp_boundary_value = wp.array(self.boundary_value, dtype=self.input_dtype)
         self.t = wp.zeros(1, dtype=self.float_dtype)
 
-        for key in self.func_groups.keys():
+        if self.func_groups: # Non empty Dict
             assert self.grid_coordinates is not None
+        
+        for key in self.func_groups.keys():
             self.func_groups[key].to_warp()
 
     @setup(order=1)
