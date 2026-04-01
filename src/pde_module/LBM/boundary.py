@@ -1,7 +1,7 @@
 import numpy as np
 import warp as wp
 from warp.types import vector,matrix
-from pde_module.utils.dummy_types import wp_Array,wp_Vector,wp_Matrix
+from pde_module.utils.types import wp_Array,wp_Vector,wp_Matrix,Any
 from pde_module.LBM.lattticeModels.latticeModel import LatticeModel
 from pde_module.stencil.hooks import *
 from pde_module.LBM.LBM_Stencil import LBM_Stencil
@@ -18,36 +18,28 @@ class Boundary(LBM_Stencil):
     Implements Full-Step Bounceback BC i.e. applies BC Strictly AFTER Streaming
     '''
     sigma:float = 0.1
-    def __init__(self, latticeModel, grid_shape):
+    flags:np.ndarray
+    groups:dict[str,Any]
+
+    @classmethod
+    def from_LBM_Mesh(cls, mesh):
+        return super().from_LBM_Mesh(mesh,'flags','groups')
+    
+    def __init__(self, latticeModel, grid_shape,flags,groups):
         super().__init__(latticeModel, grid_shape)    
-        self.flags = np.zeros(self.grid_shape,dtype=np.uint8)
-        
+        self.flags = flags
         self.BC_velocity = np.full(self.grid_shape + (self.dimension,),np.nan,dtype= self.latticeModel.float_dtype)
         self.BC_density = np.full(self.grid_shape,np.nan,dtype= self.latticeModel.float_dtype)
+        self.groups = groups
         
-        self.groups ={
-            '-X':(0,slice(None),slice(None)),
-            '+X':(-1,slice(None),slice(None)),
-            
-            '-Y':(slice(None),0,slice(None)),
-            '+Y':(slice(None),-1,slice(None)),
-            
-            '-Z':(slice(None),slice(None),0),
-            '+Z':(slice(None),slice(None),-1),
-            
-        }
         
-
     def set_BC(self,ids:str | tuple[np.ndarray | int | slice],boundary_type,velocity = None, density = None):
         '''
         Set Boundary Condition Values for node Ids or string.
         
         If density is set to a negative value, then damping is added 
         
-        
-        
         '''
-        
         if boundary_type == 2 or boundary_type == 3:
             assert (velocity is not None or density is not None)
             
