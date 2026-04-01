@@ -8,7 +8,7 @@ from pde_module.stencil.utils import (
     eligible_dims_and_shift,
     create_tensor_divergence_op,
 )
-from pde_module.utils.dummy_types import wp_Array
+from pde_module.utils.types import wp_Array
 from matplotlib import pyplot as plt
 from typing import Callable
 

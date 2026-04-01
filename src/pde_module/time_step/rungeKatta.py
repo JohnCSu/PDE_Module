@@ -13,7 +13,7 @@ from warp.types import (
 from ..stencil.hooks import *
 from .forwardEuler import ForwardEuler
 from ..utils import tuplify, SignatureMismatchError
-from pde_module.utils.dummy_types import wp_Array,wp_Vector,wp_Matrix
+from pde_module.utils.types import wp_Array,wp_Vector,wp_Matrix
 from typing import Callable
 import inspect
 

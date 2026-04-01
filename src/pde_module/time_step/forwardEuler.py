@@ -4,7 +4,7 @@ import warp as wp
 from ..stencil.stencil import Stencil
 from warp.types import vector, matrix, type_is_float
 from ..stencil.hooks import *
-from ..utils.dummy_types import wp_Array, wp_Kernel, wp_Vector,wp_Matrix
+from ..utils.types import wp_Array, wp_Kernel, wp_Vector,wp_Matrix
 
 
 class ForwardEuler(Stencil):

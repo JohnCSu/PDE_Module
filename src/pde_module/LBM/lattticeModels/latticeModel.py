@@ -2,7 +2,7 @@ import numpy as np
 import warp as wp
 from dataclasses import dataclass, field
 from warp.types import vector,matrix
-from pde_module.utils.dummy_types import wp_Array,wp_Vector
+from pde_module.utils.types import wp_Array,wp_Vector
 from pde_module.LBM.utils import array_to_vec_or_mat,vec_or_mat_to_numpy
 
 def find_opposite_indices(int_directions):

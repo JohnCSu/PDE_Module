@@ -8,7 +8,7 @@ from pde_module.stencil.utils import (
     create_tensor_divergence_op,
 )
 from collections.abc import Iterable
-from pde_module.utils.dummy_types import *
+from pde_module.utils.types import *
 
 class Divergence(ExplicitUniformGridStencil):
     """Compute the divergence of a field using central finite differences.

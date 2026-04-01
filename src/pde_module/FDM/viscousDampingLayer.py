@@ -5,7 +5,7 @@ from warp.types import vector, matrix
 from ..stencil.hooks import *
 from pde_module.stencil.utils import eligible_dims_and_shift
 from pde_module.utils.constants import INT32_MAX
-from pde_module.utils.dummy_types import wp_Array, wp_Kernel,wp_Vector,wp_Matrix
+from pde_module.utils.types import wp_Array, wp_Kernel,wp_Vector,wp_Matrix
 from collections.abc import Iterable
 
 

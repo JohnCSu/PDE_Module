@@ -3,7 +3,7 @@ import warp as wp
 from warp.types import vector, matrix, type_is_vector
 from ...stencil.hooks import *
 from ...utils.constants import *
-from ...utils.dummy_types import wp_Array, wp_Kernel
+from ...utils.types import wp_Array, wp_Kernel
 import numpy as np
 from typing import Any, Callable
 

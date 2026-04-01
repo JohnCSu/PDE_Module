@@ -1,6 +1,6 @@
 import warp as wp
 from warp import types
-from ..utils.dummy_types import *
+from ..utils.types import *
 
 from collections.abc import Iterable
 from typing import Any, Optional

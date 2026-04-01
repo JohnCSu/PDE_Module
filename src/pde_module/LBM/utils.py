@@ -1,6 +1,6 @@
 import warp as wp
 from warp.types import vector,matrix,is_array,is_vector,is_matrix
-from pde_module.utils.dummy_types import wp_Array,wp_Vector,wp_Matrix
+from pde_module.utils.types import wp_Array,wp_Vector,wp_Matrix
 import numpy as np
 
 def array_to_vec_or_mat(wp_arr:wp_Array) -> wp_Vector|wp_Matrix:

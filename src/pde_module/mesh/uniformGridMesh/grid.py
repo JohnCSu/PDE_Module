@@ -38,7 +38,7 @@ class UniformGridMesh(Mesh):
     num_nodes: int
     meshgrid: list[np.ndarray]
     coordinate_vectors: tuple[np.ndarray, ...]
-
+    grid_shape:tuple[int]
     def __init__(
         self,
         dx: float,
@@ -93,6 +93,7 @@ class UniformGridMesh(Mesh):
             int_dtype,
         )
         
+        self.grid_shape = self.nodes_per_axis
         
         self.flags = np.zeros(self.grid_shape,dtype=np.uint8)
         self.groups ={

@@ -3,7 +3,7 @@ import numpy as np
 from typing import Any
 from warp.types import vector, matrix, type_is_vector, type_is_float, is_float
 from pde_module.utils.constants import Boundary_Types
-from pde_module.utils.dummy_types import wp_Function, wp_Kernel
+from pde_module.utils.types import wp_Function, wp_Kernel
 from dataclasses import dataclass
 
 

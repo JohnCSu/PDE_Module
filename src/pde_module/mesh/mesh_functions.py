@@ -4,7 +4,7 @@ from .mesh import Mesh
 from typing import Optional, Callable
 from .uniformGridMesh import UniformGridMesh
 from warp.types import vector, matrix
-from pde_module.utils.dummy_types import wp_Array
+from pde_module.utils.types import wp_Array
 import warp as wp
 
 

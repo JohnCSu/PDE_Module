@@ -5,9 +5,9 @@ from warp.types import vector, matrix
 from ..stencil.hooks import *
 from pde_module.stencil.utils import eligible_dims_and_shift
 from pde_module.utils.constants import INT32_MAX
-from pde_module.utils.dummy_types import wp_Array
+from pde_module.utils.types import wp_Array
 from collections.abc import Iterable
-from pde_module.utils.dummy_types import *
+from pde_module.utils.types import *
 
 class FarField(ExplicitUniformGridStencil):
     """Apply a sponge layer to absorb waves at the boundary.

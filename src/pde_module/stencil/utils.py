@@ -1,6 +1,6 @@
 import warp as wp
 from warp.types import vector, matrix
-from ..utils.dummy_types import wp_Vector, wp_Vec3i
+from ..utils.types import wp_Vector, wp_Vec3i
 
 
 def create_stencil_op(input_vector: vector, stencil: vector, ghost_cells: int):
