@@ -1,6 +1,6 @@
 import warp as wp
 from warp.types import vector,matrix,is_array,is_vector,is_matrix
-from pde_module.utils.types import wp_Array,wp_Vector,wp_Matrix
+from pde_module.utils.types import wp_Array,wp_Vector,wp_Matrix,Any
 import numpy as np
 
 def array_to_vec_or_mat(wp_arr:wp_Array) -> wp_Vector|wp_Matrix:
@@ -46,3 +46,26 @@ def get_adjacent_ijk(dimension,grid_shape):
         return ni,nj,nk
 
     return adjacent_ijk
+
+
+
+def create_rho_and_u_func(f_is_vector,num_distributions,float_velocity_directions,dimension,float_dtype):
+    f_dtype = vector(num_distributions,float_dtype) if f_is_vector else wp.array2d(dtype=float_dtype)
+    @wp.func
+    def calc_rho_and_u(f_in:f_dtype,id:int):
+        rho = float_dtype(0.0)
+        u = vector(float_dtype(0.),length = dimension)
+
+        if wp.static(f_is_vector):
+            for f in range(num_distributions):
+                rho += f_in[f]
+                u += f_in[f]*float_velocity_directions[f]
+        else:
+            for f in range(num_distributions):
+                rho += f_in[f,id]
+                u += f_in[f,id]*float_velocity_directions[f]
+                
+        u /= rho
+        return rho,u
+    
+    return calc_rho_and_u

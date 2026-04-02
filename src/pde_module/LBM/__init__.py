@@ -3,3 +3,4 @@ from .stream import Streaming
 from .lattticeModels.latticeModel import LatticeModel
 from .mesh import LBM_Mesh
 from .boundary import Boundary
+from .fusedKernel import FusedLBMKernel
