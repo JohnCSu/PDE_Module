@@ -25,13 +25,13 @@ CFL_LIMIT = 0.5 - constant to ensure CFL is not violated set to 0.5
 import numpy as np
 import warp as wp
 from matplotlib import pyplot as plt
+from pde_module.mesh import UniformGridMesh,create_structured_warp_field,to_pyvista
 import pyvista as pv
-from pde_module.FDM.laplacian import Laplacian
+from pde_module.FDM import Laplacian
 from pde_module.time_step.forwardEuler import ForwardEuler
 from pde_module.FDM.boundary.gridBoundary import GridBoundary
-from pde_module.FDM.grad import Grad
+from pde_module.FDM import Grad
 from pde_module.FDM.Module.divergence import Divergence
-from pde_module.mesh import UniformGridMesh,create_structured_warp_field,to_pyvista
 
 wp.init()
 # wp.config.mode = "debug"

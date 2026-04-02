@@ -41,7 +41,7 @@ import warp as wp
 from matplotlib import pyplot as plt
 from pde_module.mesh import UniformGridMesh,create_structured_warp_field
 
-from pde_module.FDM.laplacian import Laplacian
+from pde_module.FDM import Laplacian
 from pde_module.time_step.forwardEuler import ForwardEuler
 from pde_module.FDM import ImmersedBoundary,GridBoundary,ViscousDampingLayer
 import matplotlib.pyplot as plt
