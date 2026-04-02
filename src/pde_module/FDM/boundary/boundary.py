@@ -1,4 +1,4 @@
-from ..ExplicitUniformGridStencil import ExplicitUniformGridStencil
+from pde_module.FDM.Module.ExplicitUniformGridStencil import ExplicitUniformGridStencil
 import warp as wp
 from warp.types import vector, matrix, type_is_vector, type_is_float, is_float
 from ...utils.constants import Boundary_Types
@@ -34,7 +34,7 @@ class Boundary(ExplicitUniformGridStencil):
 
     boundary_type: np.ndarray
     boundary_value: np.ndarray
-    groups: dict[str, np.ndarray[int]] 
+    groups: dict[str, np.ndarray[int]]
     func_groups: dict[str, FunctionBC]
 
     def __init__(self, field: wp.array, dx: float, ghost_cells: int) -> None:
@@ -51,6 +51,7 @@ class Boundary(ExplicitUniformGridStencil):
 
         self.groups = {}
         self.func_groups = {}
+
     def define_boundary_value_and_type_arrays(self, indices: np.ndarray) -> None:
         """Create boundary_value and boundary_type arrays.
 

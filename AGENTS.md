@@ -83,10 +83,10 @@ Ignore LSP errors but the tests should still pass.
 
 For any functions decorated with the @wp.kernel of @wp.func DO NOT modify the type signature or type hints
 
-for function signatures where the outputs are from the warp package use the Type aliases found in utils/dummy_types.py. the convenction is
+for function signatures where the outputs are from the warp package use the Type aliases found in utils/types.py. the convention is
 wp_{VARIABLE_NAME} e.g wp_Vector.
 
-For vectors and matrices use wp_Vector or wp_Matrix regardless of size e.g. if vec3i or mat22f. If the type does not exist, make it
+For vectors and matrices use wp_Vector or wp_Matrix regardless of size e.g. if vec3i or mat22f. If the type does not exist of cant be determined leave it 
 
 
 **Warp-specific types**: Use `wp.vec2f`, `wp.vec3i`, `wp.float32`, `wp.float64`, `wp.int8`, etc.

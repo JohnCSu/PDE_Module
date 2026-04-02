@@ -31,7 +31,7 @@ class Stencil:
     """
 
     initial: bool = True
-
+    device: Optional[wp.Device] = None
     def __init__(self, *args, **kwargs) -> None:
         pass
 

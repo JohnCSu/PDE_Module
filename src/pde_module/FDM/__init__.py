@@ -1,8 +1,12 @@
-from .laplacian import Laplacian
-from .boundary.gridBoundary import GridBoundary
-from .grad import Grad
-from .divergence import Divergence
-from .farfield import FarField
-from .viscousDampingLayer import ViscousDampingLayer
-from .boundary.immersedBoundary import ImmersedBoundary
-from .elementWiseOps import scalarVectorMult,OuterProduct
+from pde_module.FDM.Module import (
+    Divergence,
+    Laplacian,
+    Grad,
+    FarField,
+    ViscousDampingLayer,
+    OuterProduct,
+    scalarVectorMult,
+    ExplicitUniformGridStencil,
+)
+from pde_module.FDM.boundary.gridBoundary import GridBoundary
+from pde_module.FDM.boundary.immersedBoundary import ImmersedBoundary
