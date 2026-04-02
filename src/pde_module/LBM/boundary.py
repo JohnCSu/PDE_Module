@@ -143,20 +143,19 @@ def create_boundary_kernel(num_distributions,opposite_index,int_directions,float
         
         u_wall = wp.where(wp.isnan(u_wall[0]),u,u_wall)
         rho_wall =  wp.where(wp.isnan(rho_wall),rho,rho_wall)
-        is_relaxed_equil = wp.where(rho_wall < float_dtype(0.),True,False)
         rho_wall = wp.abs(rho_wall)
         
+        bc_is_moving = (flags[i,j,k] == MOVING_WALL)
+        bc_is_equil = (flags[i,j,k] == EQUILIBRIUM)
+        is_relaxed_equil = rho_wall < float_dtype(0.)
         
         for f in range(num_distributions):
             opp_f = opposite_index[f]
             opp_vel = int_directions[opp_f]
             ni,nj,nk = adjacent_ijk(i,j,k,opp_vel)
             adj_is_fluid = (flags[ni,nj,nk] == FLUID)
-            bc_is_moving = (flags[i,j,k] == MOVING_WALL)
-            bc_is_equil = (flags[i,j,k] == EQUILIBRIUM)
-
-            f_opp = f_in[opp_f,global_id]
             
+            f_opp = f_in[opp_f,global_id]
             
             # BounceBack BC
             new_opp_f = wp.where(flags[ni,nj,nk] == FLUID,f_in[f,global_id],f_opp) # if opp dir is Fluiod Do Bounceback False basically do nothing
@@ -168,12 +167,6 @@ def create_boundary_kernel(num_distributions,opposite_index,int_directions,float
             new_opp_f = wp.where(bc_is_equil and is_relaxed_equil,new_opp_f*sigma  + (1.-sigma)*f_opp,new_opp_f) # Relaxed Equil BC, Which is better for density Inlet/Outlet
             f_out[opp_f,global_id] = new_opp_f
         
-            # # The Above is equivalent to below (avoids if statements)            
-            # if adj_is_fluid:
-            #     f_out[opp_f,global_id] = f_in[f,global_id]
-            #     if flags[i,j,k] == MOVING_WALL: # current is at a Moving Wall
-            #         f_out[opp_f,global_id] -= 2.*3.*weights[f]*rho*wp.dot(float_directions[f],u_wall)
-
             
                 
                 
