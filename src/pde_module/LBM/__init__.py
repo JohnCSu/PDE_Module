@@ -1,6 +1,9 @@
-from .BGK import BGK_collision
-from .stream import Streaming
-from .lattticeModels.latticeModel import LatticeModel
-from .mesh import LBM_Mesh
-from .boundary import Boundary
-from .fusedKernel import FusedLBMKernel
+from pde_module.LBM.Module import (
+    BGK_collision,
+    Streaming,
+    Boundary,
+    FusedLBMKernel,
+    LBM_Stencil,
+)
+from pde_module.LBM.lattticeModels.latticeModel import LatticeModel
+from pde_module.LBM.mesh import LBM_Mesh
