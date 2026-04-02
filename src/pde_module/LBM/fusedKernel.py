@@ -129,16 +129,24 @@ def create_fusedLBMKernel(
             
             rho_wall = rho_BC[ni,nj,nk]
             u_wall = u_BC[ni,nj,nk]
-            # Stream if fluid
-            if flags[ni,nj,nk] == FLUID:
-                f_values[f]=  f_in[f,adj_id]
-                # f_values[f]= f_in[opp_f,global_id]
-            # Bounceback if Solidwall
-            elif flags[ni,nj,nk] == SOLID_WALL:
-                f_values[f]= f_in[opp_f,global_id]
-            elif flags[ni,nj,nk] == MOVING_WALL:
-            # # Bounceback if Solidwall + mom if Moving Wall
-                f_values[f]= f_in[opp_f,global_id] + 2.*3.*weights[f]*rho_wall*wp.dot(float_directions[f],u_wall)
+            adj_flag = flags[ni,nj,nk]
+            adj_f_in = f_in[f,adj_id]
+            opp_f_in = f_in[opp_f,global_id]
+            
+            f_values[f] = wp.where(adj_flag == FLUID,adj_f_in,f_values[f])
+            f_values[f] = wp.where(adj_flag == SOLID_WALL,opp_f_in,f_values[f])
+            f_values[f] = wp.where(adj_flag == MOVING_WALL,opp_f_in + 2.*3.*weights[f]*rho_wall*wp.dot(float_directions[f],u_wall),f_values[f])
+                        
+            # # Stream if fluid
+            # if adj_flag == FLUID:
+            #     f_values[f]=  f_in[f,adj_id]
+            #     # f_values[f]= f_in[opp_f,global_id]
+            # # Bounceback if Solidwall
+            # elif flags[ni,nj,nk] == SOLID_WALL:
+            #     f_values[f]= f_in[opp_f,global_id]
+            # elif flags[ni,nj,nk] == MOVING_WALL:
+            # # # Bounceback if Solidwall + mom if Moving Wall
+            #     f_values[f]= f_in[opp_f,global_id] + 2.*3.*weights[f]*rho_wall*wp.dot(float_directions[f],u_wall)
         
         rho,u = calc_rho_and_u(f_values,global_id)
         
