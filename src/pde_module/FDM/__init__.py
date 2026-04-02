@@ -1,4 +1,4 @@
-from pde_module.FDM.Module import (
+from pde_module.FDM.module import (
     Divergence,
     Laplacian,
     Grad,
@@ -10,4 +10,4 @@ from pde_module.FDM.Module import (
 )
 from pde_module.FDM.boundary.gridBoundary import GridBoundary
 from pde_module.FDM.boundary.immersedBoundary import ImmersedBoundary
-from pde_module.FDM import Kernel,Functional,Module
+from pde_module.FDM import kernel, functional, module

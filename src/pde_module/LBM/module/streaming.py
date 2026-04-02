@@ -1,10 +1,10 @@
 from .LBM_Stencil import LBM_Stencil
 import warp as wp
 from pde_module.utils.types import wp_Array
-from pde_module.LBM.lattticeModels.latticeModel import LatticeModel
+from pde_module.LBM.lattticeModels import LatticeModel
 from pde_module.stencil.hooks import *
-from pde_module.LBM.Kernel import create_streaming_kernel
-from pde_module.LBM.Functional import streaming
+from pde_module.LBM.kernel import create_streaming_kernel
+from pde_module.LBM.functional import streaming
 
 
 class Streaming(LBM_Stencil):

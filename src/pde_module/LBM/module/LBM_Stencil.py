@@ -1,5 +1,5 @@
 from pde_module.stencil import Stencil
-from pde_module.LBM.lattticeModels.latticeModel import LatticeModel
+from pde_module.LBM.lattticeModels import LatticeModel
 from pde_module.utils.types import wp_Dtype
 from pde_module.LBM.mesh import LBM_Mesh
 

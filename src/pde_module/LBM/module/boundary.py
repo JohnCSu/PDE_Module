@@ -5,8 +5,8 @@ from warp.types import vector
 from pde_module.utils.types import wp_Array, wp_Vector, wp_Matrix, Any
 from pde_module.LBM.lattticeModels.latticeModel import LatticeModel
 from pde_module.stencil.hooks import *
-from pde_module.LBM.Kernel import create_boundary_kernel
-from pde_module.LBM.Functional import boundary
+from pde_module.LBM.kernel import create_boundary_kernel
+from pde_module.LBM.functional import boundary
 
 FLUID = 0
 SOLID_WALL = 1

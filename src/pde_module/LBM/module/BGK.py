@@ -5,8 +5,8 @@ from warp.types import vector
 from pde_module.utils.types import wp_Array, wp_Vector, wp_Matrix
 from pde_module.LBM.lattticeModels.latticeModel import LatticeModel
 from pde_module.stencil.hooks import *
-from pde_module.LBM.Kernel import create_BGK_collision
-from pde_module.LBM.Functional import bgk_collision
+from pde_module.LBM.kernel import create_BGK_collision
+from pde_module.LBM.functional import bgk_collision
 
 
 class BGK_collision(LBM_Stencil):

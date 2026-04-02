@@ -3,7 +3,7 @@ from warp.types import vector
 from pde_module.utils.types import wp_Vector, wp_Matrix
 from pde_module.LBM.utils import get_adjacent_ijk
 from pde_module.utils import ijk_to_global_c, global_to_ijk_c
-from pde_module.LBM.Kernel.BGK import create_BGK_feq
+from pde_module.LBM.kernel.BGK import create_BGK_feq
 
 FLUID = 0
 SOLID_WALL = 1

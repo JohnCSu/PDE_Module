@@ -1,4 +1,4 @@
-from pde_module.FDM.Module.ExplicitUniformGridStencil import ExplicitUniformGridStencil
+from pde_module.FDM.module.ExplicitUniformGridStencil import ExplicitUniformGridStencil
 import warp as wp
 from warp.types import vector, matrix, type_is_vector, type_is_float, is_float
 from ...utils.constants import Boundary_Types

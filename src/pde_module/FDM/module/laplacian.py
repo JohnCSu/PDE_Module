@@ -3,8 +3,8 @@ import warp as wp
 from warp.types import types_equal
 from ...stencil.hooks import *
 from pde_module.utils.types import *
-from pde_module.FDM.Kernel import create_Laplacian_kernel
-from pde_module.FDM.Functional import laplacian
+from pde_module.FDM.kernel import create_Laplacian_kernel
+from pde_module.FDM.functional import laplacian
 
 
 class Laplacian(ExplicitUniformGridStencil):

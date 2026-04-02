@@ -3,10 +3,10 @@ import numpy as np
 import warp as wp
 from warp.types import vector
 from pde_module.utils.types import wp_Array, Any
-from pde_module.LBM.lattticeModels.latticeModel import LatticeModel
+from pde_module.LBM.lattticeModels import LatticeModel
 from pde_module.stencil.hooks import *
-from pde_module.LBM.Kernel import create_fusedLBMKernel
-from pde_module.LBM.Functional import fused_lbm_kernel
+from pde_module.LBM.kernel import create_fusedLBMKernel
+from pde_module.LBM.functional import fused_lbm_kernel
 from math import prod
 
 FLUID = 0

@@ -6,8 +6,8 @@ from ...stencil.hooks import *
 from pde_module.utils.constants import INT32_MAX
 from pde_module.utils.types import wp_Array, wp_Vector, wp_Matrix
 from collections.abc import Iterable
-from pde_module.FDM.Kernel import create_spongeLayer_kernel
-from pde_module.FDM.Functional import farfield
+from pde_module.FDM.kernel import create_spongeLayer_kernel
+from pde_module.FDM.functional import farfield
 
 
 class FarField(ExplicitUniformGridStencil):

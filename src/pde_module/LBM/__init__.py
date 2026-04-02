@@ -1,4 +1,4 @@
-from pde_module.LBM.Module import (
+from pde_module.LBM.module import (
     BGK_collision,
     Streaming,
     Boundary,

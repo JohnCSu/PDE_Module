@@ -3,8 +3,8 @@ import warp as wp
 from warp.types import vector, matrix, types_equal
 from ...stencil.hooks import *
 from ...utils import dtype_from_shape, wp_Function, wp_Vector, wp_Matrix, wp_Array
-from pde_module.FDM.Kernel import scalarVectorMultiply
-from pde_module.FDM.Functional import elementWiseOp
+from pde_module.FDM.kernel import scalarVectorMultiply
+from pde_module.FDM.functional import elementWiseOp
 
 
 class OuterProduct(ElementWise):
