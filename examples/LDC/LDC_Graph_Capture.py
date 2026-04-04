@@ -28,7 +28,7 @@ from pde_module.FDM import Laplacian
 from pde_module.time_step.forwardEuler import ForwardEuler
 from pde_module.FDM.boundary.gridBoundary import GridBoundary
 from pde_module.FDM import Grad
-from pde_module.FDM.Module.divergence import Divergence
+from pde_module.FDM import Divergence
 
 wp.init()
 # wp.config.mode = "debug"
