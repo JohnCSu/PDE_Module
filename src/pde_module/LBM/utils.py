@@ -69,3 +69,5 @@ def create_rho_and_u_func(f_is_vector,num_distributions,float_velocity_direction
         return rho,u
     
     return calc_rho_and_u
+
+
