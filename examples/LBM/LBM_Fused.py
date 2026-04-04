@@ -1,11 +1,12 @@
-from pde_module.LBM import FusedLBMKernel
 import numpy as np
 import warp as wp
 from matplotlib import pyplot as plt
 from pde_module.LBM import LBM_Mesh
+from pde_module.LBM import FusedLBMKernel
 from pde_module.mesh import to_pyvista
 import pyvista as pv
-
+import pandas as pd
+from pde_module.visualization import Pyvista_Visualizer
 
 wp.init()
 # wp.config.mode = "debug"
@@ -67,51 +68,30 @@ if __name__ == '__main__':
         
     # print(boundary.flags.squeeze())
     u_np = u.numpy()/U
-    f_np = f_dist.numpy()[1]
     
-    
-    import pandas as pd
     v_benchmark = pd.read_csv(r'examples/v_velocity_results.csv',sep = ',')
     u_benchmark = pd.read_csv(r'examples/u_velocity_results.txt',sep= '\t')
     
-    pv_mesh = to_pyvista(lbm)
-    pv_mesh.point_data['u_mag'] = np.sqrt(u_np[0]**2 + u_np[1]**2)
-    pv_mesh.point_data['U velocity'] = u_np[0]
-    pv_mesh.point_data['V velocity'] = u_np[1]
-
-
-    plotter = pv.Plotter(shape = (3,1))
+    Viewer = Pyvista_Visualizer(lbm,(3,1))
+    Viewer.add_point_data( {'u_mag':np.sqrt(u_np[0]**2 + u_np[1]**2),
+                            'U velocity':u_np[0],
+                            'V velocity':u_np[1],
+                            }
+                          )
     
-    plotter.subplot(0,0)
-    plotter.add_mesh(pv_mesh, scalars = 'u_mag',show_edges = False, cmap= 'jet', clim = [0,1])
-    plotter.view_xy()
+    Viewer.set_mesh_display('u_mag')
     
-    plotter.subplot(1,0)
-    chart= pv.Chart2D()
-    horizontal_line = pv_mesh.sample_over_line((0,L/2,0),(L,L/2,0),resolution= n)
-    v_05 = horizontal_line.point_data['V velocity']
-    line = chart.line(horizontal_line.points[:,0],v_05,label = 'LBM')
-    v_bench = chart.line(v_benchmark['%x'],v_benchmark['100'],'r',label = 'Ghia et al')
-    plotter.add_chart(chart)
+    Viewer.add_chart((1,0),'V velocity',(0,L/2,0),(L,L/2,0),0,resolution= n,label = 'LBM')
+    Viewer.add_data_to_chart((1,0),v_benchmark['%x'],v_benchmark['100'],color = 'r',label = 'Ghia et al')
     
-    plotter.subplot(2,0)
-    u_chart= pv.Chart2D()
-    vertical_line = pv_mesh.sample_over_line((L/2,0,0),(L/2,L,0),resolution= n)
-    u_05 = vertical_line.point_data['U velocity']
-    u_line = u_chart.line(vertical_line.points[:,0],u_05,label = 'LBM')
-    u_bench = u_chart.line(u_benchmark['%y'],u_benchmark['100'],'r',label = 'Ghia et al')
-    plotter.add_chart(u_chart)
+    Viewer.add_chart((2,0),'U velocity',(L/2,0,0),(L/2,L,0),1,resolution= n,label = 'LBM')
+    Viewer.add_data_to_chart((2,0),u_benchmark['%y'],u_benchmark['100'],color = 'r',label = 'Ghia et al')
     
-    
-    plotter.show(interactive_update=True)
-    plotter.open_movie("transient_animation.gif")
-    timer_pos = (0.5,0.8)
-    timer = plotter.add_text("steps: 0", position=timer_pos, font_size=12,viewport = True)
-    
+    Viewer.set_Animation('FusedLBM.gif')
     
     num_frames = 300
     step_per_frame = 300
-
+    
     f_out = None
     for frame in range(num_frames):
         t = frame*step_per_frame
@@ -120,25 +100,13 @@ if __name__ == '__main__':
             f_dist,f_out = f_out, f_dist
         
         wp.launch(calculate_rho_and_u,dim = rho.size,inputs = [f_out,rho,u,lbm.latticeModel.float_directions])
+        
         u_np = u.numpy()/U
-        pv_mesh.point_data['u_mag'] = np.sqrt(u_np[0]**2 + u_np[1]**2)
-        pv_mesh.point_data['U velocity'] = u_np[0]
-        pv_mesh.point_data['V velocity'] = u_np[1]
-        timer.input = f"steps: {t}"
-        
-        horizontal_line = pv_mesh.sample_over_line((0,L/2,0),(L,L/2,0),resolution= n)
-        v_05 = horizontal_line.point_data['V velocity']
-        line.update(horizontal_line.points[:,0],v_05)
-        
-        
-        vertical_line = pv_mesh.sample_over_line((L/2,0,0),(L/2,L,0),resolution= n)
-        u_05 = vertical_line.point_data['U velocity']
-        u_line.update(vertical_line.points[:,1],u_05)
-        # print(u_np[0].reshape((n,n)).squeeze())
-        
-        
-        plotter.write_frame()
+        Viewer.mesh.point_data['u_mag'] = np.sqrt(u_np[0]**2 + u_np[1]**2)
+        Viewer.mesh.point_data['U velocity'] = u_np[0]
+        Viewer.mesh.point_data['V velocity'] = u_np[1]
+        Viewer.update_charts_and_write_frame()
     
-    plotter.close()
+    Viewer.close()
     
     
