@@ -4,11 +4,7 @@ from pde_module.utils.types import wp_Vector, wp_Matrix, wp_Dtype
 from pde_module.LBM.utils import get_adjacent_ijk, create_rho_and_u_func
 from pde_module.utils import ijk_to_global_c, global_to_ijk_c
 from pde_module.LBM.kernel.BGK import create_BGK_feq
-
-FLUID = 0
-SOLID_WALL = 1
-MOVING_WALL = 2
-EQUILIBRIUM = 3
+from pde_module.LBM.flags import *
 
 
 def create_fusedLBMKernel(
@@ -60,16 +56,9 @@ def create_fusedLBMKernel(
 
             f_values[f] = wp.where(adj_flag == FLUID, adj_f_in, f_values[f])
             f_values[f] = wp.where(adj_flag == SOLID_WALL, opp_f_in, f_values[f])
-            f_values[f] = wp.where(
-                adj_flag == MOVING_WALL,
-                opp_f_in
-                + 2.0
-                * 3.0
-                * weights[f]
-                * rho_wall
-                * wp.dot(float_directions[f], u_wall),
-                f_values[f],
-            )
+            f_values[f] = wp.where(adj_flag == MOVING_WALL,
+                                   opp_f_in+2.0* 3.0* weights[f]* rho_wall* wp.dot(float_directions[f], u_wall),
+                                   f_values[f])
 
         rho, u = calc_rho_and_u(f_values, global_id)
 

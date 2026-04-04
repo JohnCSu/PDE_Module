@@ -4,12 +4,7 @@ from pde_module.utils.types import wp_Vector, wp_Matrix
 from pde_module.LBM.utils import get_adjacent_ijk
 from pde_module.utils import ijk_to_global_c, global_to_ijk_c
 from pde_module.LBM.kernel.BGK import create_BGK_feq
-
-FLUID = 0
-SOLID_WALL = 1
-MOVING_WALL = 2
-EQUILIBRIUM = 3
-
+from pde_module.LBM.flags import *
 
 def create_boundary_kernel(
     num_distributions,
