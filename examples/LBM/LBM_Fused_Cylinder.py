@@ -42,13 +42,13 @@ if __name__ == '__main__':
     
     lbm_kernel = FusedLBMKernel.from_LBM_Mesh(lbm)
     
-    lbm_kernel.sigma = 0.25
+    lbm_kernel.sigma = 0.1
     u_wall = (U,0.)
     
     lbm_kernel.set_BC('-X',3,u_wall)
-    lbm_kernel.set_BC('+X',3,density= 1.)
-    lbm_kernel.set_BC('-Y',3,density= -1.)
-    lbm_kernel.set_BC('+Y',3,density= -1.)
+    lbm_kernel.set_BC('+X',3,density= -1.)
+    lbm_kernel.set_BC('-Y',0)
+    lbm_kernel.set_BC('+Y',0)
     
     from warp.types import matrix
     @wp.kernel
