@@ -28,27 +28,27 @@ class Pyvista_Visualizer():
         
         
 
-    def set_mesh_display(self,to_plot:str):
+    def set_mesh_display(self,to_plot:str,**kwargs):
         plotter = self.plotter
         plotter.subplot(0,0)
-        plotter.add_mesh(self.mesh, scalars = to_plot,show_edges = False, cmap= 'jet', clim = [0,1])
+        plotter.add_mesh(self.mesh, scalars = to_plot,**kwargs)
         plotter.view_xy()
     
     def add_point_data(self,point_data_dict:Optional[dict] = None,**kwargs):
         if isinstance(point_data_dict,dict):
             for key,val in point_data_dict.items():
-                self.plotter.point_data[key] = val
+                self.mesh.point_data[key] = val
         
             for key,val in kwargs.items():
-                self.plotter.point_data[key] = val
+                self.mesh.point_data[key] = val
                 
     def add_cell_data(self,point_data_dict:Optional[dict] = None,**kwargs):
         if isinstance(point_data_dict,dict):
             for key,val in point_data_dict.items():
-                self.plotter.cell_data[key] = val
+                self.mesh.cell_data[key] = val
         
             for key,val in kwargs.items():
-                self.plotter.cell_data[key] = val
+                self.mesh.cell_data[key] = val
     
     
     def add_chart(self,subplot,scalar,p1,p2,axis,resolution,label,data_type = 'point'):
