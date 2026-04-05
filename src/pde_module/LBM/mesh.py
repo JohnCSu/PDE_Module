@@ -1,8 +1,9 @@
 from pde_module.mesh import UniformGridMesh
 import numpy as np
 import warp as wp
+from typing import Callable
 from pde_module.LBM.lattticeModels import LatticeModel,D2Q9
-
+from .flags import *
 
 def get_latticeModel(latticeModel:str,int_dtype,float_dtype):
     match latticeModel:
@@ -39,7 +40,22 @@ class LBM_Mesh(UniformGridMesh):
         assert self.latticeModel.dimension == sum(1 for i in nodes_per_axis if i > 1), 'Lattice Model must match dimension of mesh'
         
        
+    def from_bool_func(self, fn: Callable,value:int = SOLID_WALL,group_name = None) -> None:
+        """Define solid regions using a boolean function.
+
+        The function should return 0 for points outside the solid and 1 for points inside.
+        Example: f(x, y, z) -> sqrt(x**2 + y**2) < R
+
+        Args:
+            fn: Boolean function that takes meshgrid coordinates.
+            meshgrid: List of coordinate arrays matching grid shape.
+        """
         
+        bitmask = fn(*self.meshgrid)
+        indices = np.nonzero(bitmask)
+        if group_name is None:
+            self.groups[f'Boundary_group_{len(self.groups.keys())}'] = indices
+        self.flags[*indices] = value
 
     def create_field(self,num_outputs:int,initial_value:float = 0.,backend= 'warp'):
         '''Creates an SoA array of flat array i.e O,C where O is number of outputs and C is number of cells'''
