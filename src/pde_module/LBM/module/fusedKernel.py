@@ -16,6 +16,8 @@ EQUILIBRIUM = 3
 
 
 class FusedLBMKernel(LBM_Stencil):
+    sigma:float = 0.1
+    ramp:float = 1.
     @classmethod
     def from_LBM_Mesh(cls, mesh):
         return super().from_LBM_Mesh(mesh, "flags", "groups")
@@ -24,10 +26,10 @@ class FusedLBMKernel(LBM_Stencil):
         super().__init__(latticeModel, grid_shape)
         self.flags = flags
         self.BC_velocity = np.full(
-            self.grid_shape + (self.dimension,), 0, dtype=self.latticeModel.float_dtype
+            self.grid_shape + (self.dimension,), np.nan, dtype=self.latticeModel.float_dtype
         )
         self.BC_density = np.full(
-            self.grid_shape, 1, dtype=self.latticeModel.float_dtype
+            self.grid_shape, np.nan, dtype=self.latticeModel.float_dtype
         )
         self.groups = groups
 
@@ -57,6 +59,9 @@ class FusedLBMKernel(LBM_Stencil):
         if density is not None:
             self.BC_density[ids] = density
 
+    
+    
+    
     @setup
     def initialize(self, f_in, tau, f_out=None):
         self.latticeModel.to_warp()
@@ -91,6 +96,8 @@ class FusedLBMKernel(LBM_Stencil):
             self.warp_flags,
             self.warp_BC_velocity,
             self.warp_BC_density,
+            self.sigma,
+            self.ramp,
             output_array,
             self.num_nodes,
             device=self.device,
