@@ -96,7 +96,7 @@ if __name__ == '__main__':
     for frame in range(num_frames):
         t = frame*step_per_frame
         for i in range(step_per_frame):
-            f_out = lbm_kernel(f_dist,tau,f_out)
+            f_out = lbm_kernel(f_dist,tau,f_out = f_out)
             f_dist,f_out = f_out, f_dist
         
         wp.launch(calculate_rho_and_u,dim = rho.size,inputs = [f_out,rho,u,lbm.latticeModel.float_directions])
