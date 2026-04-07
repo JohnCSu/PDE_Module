@@ -3,6 +3,32 @@ from warp.types import vector, matrix
 from ..utils.types import wp_Vector, wp_Vec3i
 
 
+
+def eligible_dims_and_shift(
+    grid_shape: tuple[int, ...], ghost_cells: int
+) -> tuple[wp_Vector, wp_Vec3i]:
+    """Return eligible dimensions and their corresponding ghost cell shifts.
+
+    Returns dimensions that have more than 1 point as a vector, and the
+    corresponding shift for each eligible dim due to ghost_cells.
+
+    Args:
+        grid_shape: Shape of the grid (3-tuple).
+        ghost_cells: Number of ghost cells.
+
+    Returns:
+        Tuple of (eligible_dims vector, shift vector).
+
+    Example:
+        (3, 5, 1) with ghost_cells > 0 returns ((0, 1), (gc, gc, 0))
+    """
+    d = tuple(i for i, x in enumerate(grid_shape) if x > 1)
+    return wp.types.vector(length=len(d), dtype=int)(d), wp.vec3i(
+        [ghost_cells if x > 1 else 0 for x in grid_shape]
+    )
+
+
+
 def create_stencil_op(input_vector: vector, stencil: vector, ghost_cells: int):
     """Create a stencil operation for finite difference calculations.
 
@@ -99,26 +125,3 @@ def create_tensor_divergence_op(
 
     return tensor_divergence
 
-
-def eligible_dims_and_shift(
-    grid_shape: tuple[int, ...], ghost_cells: int
-) -> tuple[wp_Vector, wp_Vec3i]:
-    """Return eligible dimensions and their corresponding ghost cell shifts.
-
-    Returns dimensions that have more than 1 point as a vector, and the
-    corresponding shift for each eligible dim due to ghost_cells.
-
-    Args:
-        grid_shape: Shape of the grid (3-tuple).
-        ghost_cells: Number of ghost cells.
-
-    Returns:
-        Tuple of (eligible_dims vector, shift vector).
-
-    Example:
-        (3, 5, 1) with ghost_cells > 0 returns ((0, 1), (gc, gc, 0))
-    """
-    d = tuple(i for i, x in enumerate(grid_shape) if x > 1)
-    return wp.types.vector(length=len(d), dtype=int)(d), wp.vec3i(
-        [ghost_cells if x > 1 else 0 for x in grid_shape]
-    )
