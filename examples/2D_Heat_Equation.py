@@ -41,7 +41,7 @@ if __name__ == '__main__':
     
     grid = UniformGridMesh(dx = dx,nodes_per_axis=(n,n,1),origin= (0.,0.,0.),ghost_cells=ghost_cells)
     IC = lambda x,y,z: (np.sin(np.pi*x)*np.sin(np.pi*y))
-    u = create_structured_warp_field(grid,'node',1,IC)
+    u = create_structured_warp_field(grid,'node',1,func= IC)
     # Define Modules
     
     BC = GridBoundary(u,dx,1)
@@ -52,7 +52,7 @@ if __name__ == '__main__':
 
     lapl.setup(u)
     BC.setup(u)
-    
+    print(f'Max u = {u.numpy().max()} at t = {0},iter = {0}')
     t= 0
     for i in range(1000):
         u2 = BC(u)
