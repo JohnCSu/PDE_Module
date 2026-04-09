@@ -33,8 +33,7 @@ import pyvista as pv
 from pde_module.FDM import Laplacian
 from pde_module.time_step.forwardEuler import ForwardEuler
 # from pde_module.FDM.boundary import GridBoundary
-from pde_module.FDM.boundary.functional_boundary import GridBoundary
-from pde_module.FDM.boundary.gridBoundary import GridBoundary as GB
+from pde_module.FDM.boundary import GridBoundary
 from pde_module.FDM.boundary.flags import DIRICHLET,VON_NEUMANN
 from pde_module.FDM import Divergence,Grad
 
@@ -61,10 +60,6 @@ if __name__ == '__main__':
     
     u_BC.set_BC('ALL',0.,DIRICHLET)
     u_BC.set_BC('+Y',1.,DIRICHLET,0) # Only Apply to u    
-
-    # test = GB(u,dx,ghost_cells,grid.nodal_grid)
-    # print(test.boundary_interior)
-    # print(test.boundary_ijk_indices)
     
     u_lapl = Laplacian(2,dx,ghost_cells)
     u_grad = Grad(2,u.shape,dx,ghost_cells=ghost_cells)
