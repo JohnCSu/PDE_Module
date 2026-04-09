@@ -3,10 +3,13 @@ LID DRIVEN CAVITY
 
 This examples shows solving 2D Navier Stokes in the classic LDC example using the Artificial Compressibility Method for explicit CFD. 
 
-No GRAPH CAPTURE IS USED HERE. Compare with examples/Benchmark/LDC_Graph_Capture.py to see how graph capture can significantly speed up runtimes.
+This uses the function based BC module where all BC are functions (rather than store constants in an array).
 
-Domain: 101 x 101 grid nodes
+We compare with the old method and can see the runtimes are very similar for larger models under Graph Capture
+
+Domain: 201 x 201 grid nodes
 Re: 100 (All other constant are 1)
+Time steps: 20,000
 
 Equations:
 

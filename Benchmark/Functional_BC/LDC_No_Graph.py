@@ -1,0 +1,138 @@
+'''
+LID DRIVEN CAVITY
+
+This examples shows solving 2D Navier Stokes in the classic LDC example using the Artificial Compressibility Method for explicit CFD. 
+
+No GRAPH CAPTURE IS USED HERE. This is to compare the previous BC implementation with the newer function based Implementation. 
+Because of kernel overhead, this 
+
+Domain: 201 x 201 grid nodes
+Re: 100 (All other constant are 1)
+Time steps: 20,000
+
+Equations:
+
+du/dt grad_u * u =  d^2u/dx^2 + d^2u/dy^2 - dp/dx
+
+dp/dt +beta * div(u) = 0
+
+
+Constants to tune:
+dt - time step. Simple Euler Step is used
+beta =0.3  ACM term, higher means faster convergence but instability (akin to increasing time stepping)
+CFL_LIMIT = 0.5 - constant to ensure CFL is not violated set to 0.5
+
+'''
+
+import numpy as np
+import warp as wp
+from matplotlib import pyplot as plt
+from pde_module.mesh import UniformGridMesh,create_structured_warp_field,to_pyvista
+import pyvista as pv
+from pde_module.FDM import Laplacian
+from pde_module.time_step.forwardEuler import ForwardEuler
+from pde_module.FDM.boundary.gridBoundary import GridBoundary
+from pde_module.FDM import Grad
+from pde_module.FDM import Divergence
+
+wp.init()
+# wp.config.mode = "debug"
+
+if __name__ == '__main__':
+    n = 201
+    L = 1
+    dx = L/(n-1)
+    ghost_cells = 1
+
+    grid = UniformGridMesh(dx,nodes_per_axis=(n,n,1),origin=(0.,0.,0.),ghost_cells=1)
+    # Runtime params
+    viscosity = 1/100
+    beta = 0.3
+    CFL_LIMIT = 0.5
+    dt = min(CFL_LIMIT*float(dx**2/(viscosity)),CFL_LIMIT*dx/(1+1/beta))
+    
+    # Define Modules
+    
+    u = create_structured_warp_field(grid,'node',2)
+    u_BC = GridBoundary(u,dx,ghost_cells)
+    u_BC.dirichlet_BC('ALL',0.)
+    u_BC.dirichlet_BC('+Y',1.,0)    
+    
+    u_lapl = Laplacian(2,dx,ghost_cells)
+    u_grad = Grad(2,u.shape,dx,ghost_cells=ghost_cells)
+    
+    u_div = Divergence(2,u.shape,dx,ghost_cells)
+    u_step = ForwardEuler(u.dtype)
+    
+    p = create_structured_warp_field(grid,'node',1)
+    p_BC = GridBoundary(p,dx,ghost_cells)
+    p_BC.vonNeumann_BC('ALL',0.)
+    p_grad = Grad(1,p.shape,dx,ghost_cells)
+    p_step = ForwardEuler(p.dtype)
+    t= 0
+    '''
+    Equations:
+
+    du/dt = d^2u/dx^2 - dp/dx
+    dv/dt = d^2v/dx^2 - dp/dx
+
+    dp/dt +beta * div(u) = 0
+    '''
+    
+    np.set_printoptions(precision=5,suppress= False)
+    with wp.ScopedTimer("LDC No Graph"):
+        for i in range(1,20001):
+            u_fix = u_BC(u)
+            u_diff = u_lapl(u_fix,viscosity)
+            du = u_grad(u_fix)
+            u_incomp = u_div(u_fix,-beta)
+            u_conv = du*u
+            p_fix = p_BC(p)
+            dp = p_grad(p_fix,-1.)
+            u_F = dp - u_conv + u_diff
+            u_next = u_step(u_fix,u_F,dt)
+            p_next = p_step(p_fix,u_incomp,dt)
+            u,p = u_next,p_next
+            t+= dt
+            
+            if i % 2500 == 0:
+                print(f't = {t:.3E},iter = {i}')
+            
+    
+    pv_mesh = to_pyvista(grid)
+    
+    us = u.numpy()
+    u_plot = us[:,:,0,0]
+    v_plot = us[:,:,0,1]
+    u_mag = np.sqrt(u_plot**2 + v_plot**2)
+    pv_mesh.point_data['U_mag'] = u_mag.reshape(len(grid.nodes))
+    pv_mesh.point_data['U velocity'] = u_plot.reshape(len(grid.nodes))
+    pv_mesh.point_data['V velocity'] = v_plot.reshape(len(grid.nodes))
+    
+    plotter = pv.Plotter()
+    plotter.add_mesh(pv_mesh,scalars ='U_mag',show_edges = False, cmap= 'jet',clim = [0,1])
+    plotter.view_xy()
+    plotter.show()
+    
+    
+    import pandas as pd
+    v_benchmark = pd.read_csv(r'examples/v_velocity_results.csv',sep = ',')
+    u_benchmark = pd.read_csv(r'examples/u_velocity_results.txt',sep= '\t')
+    
+    horizontal_line = pv_mesh.sample_over_line((0,L/2,0),(L,L/2,0),resolution= n)
+    v_05 = horizontal_line.point_data['V velocity']
+    
+    print(f"CFD max {v_05.max()}, Benchmark Max :{v_benchmark['100'].max()}")
+    plt.plot(v_benchmark['%x'],v_benchmark['100'],'o',label = 'Ghia et al')
+    plt.plot(horizontal_line.points[:,0],v_05)
+    plt.show()
+    
+    
+    vertical_line = pv_mesh.sample_over_line((L/2,0,0),(L/2,L,0),resolution= n)
+    u_05 = vertical_line.point_data['U velocity']
+    
+    print(f"CFD max {u_05.max()}, Benchmark Max :{u_benchmark['100'].max()}")
+    plt.plot(u_benchmark['%y'],u_benchmark['100'],'o',label = 'Ghia et al')
+    plt.plot(vertical_line.points[:,1],u_05)
+    plt.show()
+        
