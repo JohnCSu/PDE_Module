@@ -1,9 +1,9 @@
-from .boundary import Boundary, FunctionBC
+from ..FDM.boundary.boundary import Boundary, FunctionBC
 import warp as wp
 from warp.types import vector, matrix, type_is_vector
-from ...stencil.hooks import *
-from ...utils.constants import *
-from ...utils.types import wp_Array, wp_Kernel
+from ..stencil.hooks import *
+from ..utils.constants import *
+from ..utils.types import wp_Array, wp_Kernel
 import numpy as np
 from typing import Any, Callable
 

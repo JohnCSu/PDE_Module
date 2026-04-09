@@ -8,6 +8,6 @@ from pde_module.FDM.module import (
     scalarVectorMult,
     ExplicitUniformGridStencil,
 )
-from pde_module.FDM.boundary.gridBoundary import GridBoundary
-from pde_module.FDM.boundary.immersedBoundary import ImmersedBoundary
+from pde_module.FDM.boundary import GridBoundary
+from pde_module.FDM.boundary import ImmersedBoundary
 from pde_module.FDM import kernel, functional, module
