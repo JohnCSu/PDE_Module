@@ -26,7 +26,8 @@ from pde_module.mesh import UniformGridMesh,create_structured_warp_field,to_pyvi
 import pyvista as pv
 from pde_module.FDM import Laplacian
 from pde_module.time_step.forwardEuler import ForwardEuler
-from pde_module.FDM.boundary.gridBoundary import GridBoundary
+from pde_module.FDM.boundary import GridBoundary
+from pde_module.FDM.boundary.flags import VON_NEUMANN,DIRICHLET
 from pde_module.FDM import Grad
 from pde_module.FDM import Divergence
 
@@ -50,7 +51,7 @@ if __name__ == '__main__':
     # Define Modules
     
     u = create_structured_warp_field(grid,'node',2)
-    u_BC = GridBoundary(u,dx,ghost_cells)
+    u_BC = GridBoundary(u,dx,ghost_cells,grid.nodal_grid)
     u_BC.dirichlet_BC('ALL',0.)
     u_BC.dirichlet_BC('+Y',1.,0)
     
@@ -61,8 +62,8 @@ if __name__ == '__main__':
     u_step = ForwardEuler(u.dtype)
     
     p = create_structured_warp_field(grid,'node',1)
-    p_BC = GridBoundary(p,dx,ghost_cells)
-    p_BC.vonNeumann_BC('ALL',0.)
+    p_BC = GridBoundary(p,dx,ghost_cells,grid.nodal_grid)
+    p_BC.vonNeumann_BC('ALL',0)
     p_grad = Grad(1,p.shape,dx,ghost_cells)
     p_step = ForwardEuler(p.dtype)
     t= 0

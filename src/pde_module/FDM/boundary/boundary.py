@@ -6,7 +6,7 @@ from ...utils.utils import get_unique_key
 from ...stencil.hooks import *
 import numpy as np
 from typing import Callable, Any
-from .func_boundary import FunctionBC
+from ...deprecated.func_boundary import FunctionBC
 
 class Boundary(ExplicitUniformGridStencil):
     """Base class for boundary condition methods.

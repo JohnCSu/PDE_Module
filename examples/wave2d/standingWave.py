@@ -29,7 +29,7 @@ from matplotlib import pyplot as plt
 from pde_module.mesh import UniformGridMesh,create_structured_warp_field
 from pde_module.FDM import Laplacian
 from pde_module.time_step.forwardEuler import ForwardEuler
-from pde_module.FDM.boundary.gridBoundary import GridBoundary
+from pde_module.deprecated.gridBoundary import GridBoundary
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
 wp.init()
