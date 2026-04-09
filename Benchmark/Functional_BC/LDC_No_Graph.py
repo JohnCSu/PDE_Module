@@ -31,7 +31,7 @@ from pde_module.mesh import UniformGridMesh,create_structured_warp_field,to_pyvi
 import pyvista as pv
 from pde_module.FDM import Laplacian
 from pde_module.time_step.forwardEuler import ForwardEuler
-from pde_module.FDM.boundary.gridBoundary import GridBoundary
+from pde_module.deprecated.gridBoundary import GridBoundary
 from pde_module.FDM import Grad
 from pde_module.FDM import Divergence
 

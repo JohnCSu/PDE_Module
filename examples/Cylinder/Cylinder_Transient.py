@@ -116,17 +116,10 @@ if __name__ == '__main__':
     U_ref = [U,0.]
     u.fill_(U_ref)
     
-    u_BC = GridBoundary(u,dx,ghost_cells)
+    u_BC = GridBoundary(u,dx,ghost_cells,grid.nodal_grid)
+    
     u_BC.vonNeumann_BC('ALL',0.)
     u_BC.dirichlet_BC('-X',U,0)
-    u_BC.dirichlet_BC('-X',0.1,1)
-    u_BC.dirichlet_BC('+Y',U,0)
-    u_BC.dirichlet_BC('+Y',U_ref[1],1)
-    u_BC.dirichlet_BC('-Y',U,0)
-    u_BC.dirichlet_BC('-Y',U_ref[1],1)
-    
-    
-    u_BC.vonNeumann_BC('+X',0.)
     
     u_cyl = ImmersedBoundary(u,dx,ghost_cells)
     u_cyl.from_bool_func(cyl,meshgrid)
@@ -155,7 +148,7 @@ if __name__ == '__main__':
     rho.fill_(1.)
     
     # print(rho.numpy().squeeze())
-    rho_BC = GridBoundary(rho,dx,ghost_cells)
+    rho_BC = GridBoundary(rho,dx,ghost_cells,grid.nodal_grid)
     rho_BC.vonNeumann_BC('ALL',0.)
     rho_BC.dirichlet_BC('+X',density)
     
@@ -255,7 +248,7 @@ if __name__ == '__main__':
     plotter.open_movie("transient_animation.gif")
     
     num_frames = 450
-    step_per_frame = 400
+    step_per_frame = 100
     for frame in range(num_frames):
         t = frame*step_per_frame*dt
         for i in range(step_per_frame):
