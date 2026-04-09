@@ -19,7 +19,7 @@ from pde_module.types import wp_Array, wp_Kernel
 import numpy as np
 from typing import Any, Callable
 from math import prod
-from pde_module.FDM.boundary.flags import DIRICHLET,VON_NEUMANN
+from pde_module.FDM.boundary.flags import DIRICHLET,VON_NEUMANN,BC_SRING
 from ..module import ExplicitUniformGridStencil
 from dataclasses import dataclass
 @dataclass
@@ -88,8 +88,6 @@ class GridBoundary(ExplicitUniformGridStencil):
         inputs = self.get_shape_from_dtype(field.dtype)
         self.dimension = sum(1 for g in field.shape if g > 1)
         
-        
-        
         super().__init__(inputs,inputs, dx, ghost_cells)
 
         if isinstance(grid_coordinates, np.ndarray):
@@ -112,13 +110,9 @@ class GridBoundary(ExplicitUniformGridStencil):
         
     def define_exterior_groups(self):
         ghost_cells = self.ghost_cells
-        
-        slice_ghost = slice(ghost_cells,-(ghost_cells+1),1) if ghost_cells > 0 else slice(None)
-        
-        dims,_ = eligible_dims_and_shift(self.grid_shape,ghost_cells)
-         
-         
-        self.slice_groups = {}
+        # self.slice_groups = {}
+        temp_IDs = self.nodeIDs.reshape(self.grid_shape,copy = False)
+        all_exterior_ls = []
         
         for i,axis in enumerate(['X','Y','Z']):
             if self.grid_shape[i] > 1: 
@@ -135,14 +129,9 @@ class GridBoundary(ExplicitUniformGridStencil):
                         if g > 1 and i != x:
                             slice_group[x] =  slice(ghost_cells,-(ghost_cells),1) if ghost_cells > 0 else slice(None)
 
-                    self.slice_groups[key] = tuple(slice_group)
-        
-        temp_IDs = self.nodeIDs.reshape(self.grid_shape,copy = False)
-        
-        all_exterior_ls = []
-        for i,(key,slice_idx) in enumerate(self.slice_groups.items()):
-            self.groups[key] = temp_IDs[slice_idx].ravel()
-            all_exterior_ls.append(self.groups[key])
+                    slice_idx = tuple(slice_group)
+                    self.groups[key] = temp_IDs[slice_idx].ravel()
+                    all_exterior_ls.append(self.groups[key])
 
         self.groups['ALL'] = np.unique(np.concatenate(all_exterior_ls,axis = 0)).astype(np.int32)
         return None
@@ -176,11 +165,11 @@ class GridBoundary(ExplicitUniformGridStencil):
         
         if isinstance(face_ids, str):
             assert face_ids in self.groups.keys()
-            groupName = face_ids
+            groupName = get_unique_key(self.func_groups, f'{groupName}_{BC_SRING[boundary_type]}')
             face_ids = self.groups[face_ids]
         else:
             assert isinstance(face_ids, (np.ndarray, list, tuple, int))
-            groupName = get_unique_key(self.groups, "BC_Group")
+            groupName = get_unique_key(self.func_groups, "BC_Group")
             face_ids = np.array(face_ids, dtype=np.int32)
             assert len(face_ids.shape) == 1,'face_ids should be 1D'
         
@@ -189,7 +178,34 @@ class GridBoundary(ExplicitUniformGridStencil):
             face_ids, boundary_type, output_ids, value)
         
 
+    def dirichlet_BC(self,face_ids: str | int | np.ndarray | list | tuple,
+        value: float | Callable,
+        output_ids: int = None):
+        self.set_BC(face_ids,value,DIRICHLET,output_ids)
+        
+    def vonNeumann_BC(self,face_ids: str | int | np.ndarray | list | tuple,
+        value: float | Callable,
+        output_ids: int = None):
+        self.set_BC(face_ids,value,VON_NEUMANN,output_ids)
+        
+    def no_slip(self,face_ids: str | int | np.ndarray | list | tuple,
+        output_ids: int = None):
+        self.set_BC(face_ids,0.,DIRICHLET,output_ids)
+    
+    def impermeable(self,group: str):
+        assert self.inputs[0] == self.dimension, (
+            "Valid only when input_dtype is vector with same length equal to dimension of field"
+        )
+        assert group in {"-X","+X","-Y","+Y","-Z","+Z",}, "{'-X','+X','-Y','+Y','-Z','+Z'} are valid groups"
+        
+        axis_name = group[-1]
+        indices = ["X", "Y", "Z"]
+        axis = indices.index(axis_name)
+        self.vonNeumann_BC(group, 0.0)
+        self.dirichlet_BC(group, 0.0, axis)
+        
 
+    
     def __call__(
         self,
         input_array: wp.array,
@@ -213,18 +229,16 @@ class GridBoundary(ExplicitUniformGridStencil):
             params = {}
         return super().__call__(input_array, t, params)
 
-    @setup
-    def to_warp(self, *args, **kwargs) -> None:
-        """Convert numpy arrays to warp arrays."""
-        self.t = wp.zeros(1, dtype=self.float_dtype)
-        
-        for key in self.func_groups.keys():
-            self.func_groups[key].to_warp()
-
+    
     @setup(order=1)
     def initialize_kernel(self,input_array, *args, **kwargs) -> None:
         """Initialize the boundary kernel."""
+        
+        self.t = wp.zeros(1, dtype=self.float_dtype)
+           
+        
         for key in self.func_groups.keys():
+            self.func_groups[key].to_warp()
             self.func_groups[key].create_kernel(self.input_dtype, self.grid_shape,self.ghost_cells)
 
         self.output_array = self.create_output_array(input_array)
