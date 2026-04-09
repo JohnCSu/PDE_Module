@@ -27,7 +27,7 @@ import warp as wp
 from matplotlib import pyplot as plt
 import pyvista as pv
 from pde_module.time_step.forwardEuler import ForwardEuler
-from pde_module.FDM.boundary.gridBoundary import GridBoundary
+from pde_module.deprecated.gridBoundary import GridBoundary
 from pde_module.FDM import (Laplacian,
                             Grad,
                             GridBoundary,
