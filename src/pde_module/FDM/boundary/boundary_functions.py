@@ -44,3 +44,47 @@ def get_constant_func(constant: float,input_dtype,output_ids, float_type) -> wp_
         return output
 
     return constant_value
+
+
+
+def get_ramp_func(constant: float,T_max:float,input_dtype,output_ids, float_type) -> wp_Function:
+    """Create a ramp a function from 0 to constant from 0 to T_max.
+    
+    Args:
+        constant: The constant value to return.
+        float_type: The warp float type.
+
+    Returns:
+        A wp.func that returns the ramp function.
+    """
+    constant = float(constant)
+    T_max = float_type(T_max)
+    
+    match output_ids:
+        case int():
+            length = 1
+            output_ids = [output_ids]
+        case list() | tuple():
+            length = len(output_ids)
+            
+    ids_vector = vector(length,dtype = int)
+    ids_to_set =ids_vector(*output_ids)
+    
+    @wp.func
+    def constant_value(
+        current_values: wp.array3d(dtype=input_dtype),
+        nodeID: wp.vec3i,
+        coordinates: wp.array3d(dtype=vector(3, float_type)),
+        t: float_type,
+        dx: float_type,
+        params: Any,
+    ):
+        
+        ramp = wp.min(t/T_max,float_type(1.))
+        
+        output = current_values[nodeID[0],nodeID[1],nodeID[2]]
+        for i in range(wp.static(len(ids_to_set))):
+            output[ids_to_set[i]] = ramp*float_type(constant)
+        return output
+
+    return constant_value
