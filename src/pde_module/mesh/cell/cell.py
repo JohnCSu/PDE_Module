@@ -50,7 +50,7 @@ class Cells:
             self.types, return_counts=True
         )
 
-        self.IDs = getIDs(cells_arr)
+        self.IDs = getIDs(self.connectivity)
         self.int_dtype = int_dtype
         self.float_dtype = float_dtype
 
