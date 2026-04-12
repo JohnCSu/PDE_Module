@@ -63,7 +63,7 @@ class Mesh:
         self.edges = Edges.from_cells(self.cells)
         self.faces = Faces.from_cells(self.cells)
 
-        self.topology = Topology()
+        # self.topology = Topology()
         self.int_dtype = int_dtype
         self.float_dtype = float_dtype
 
