@@ -12,8 +12,8 @@
 ## Stencil
 - [] Add dynamic flag option where if true, create_output array is set to before_forward hook
 ## FDM
-- [] Clean up Boundary Conditions
-- [~] Change formulation to first pull data into an array so we can do fused ops
+- [~] Clean up Boundary Conditions
+- [X] Change formulation to first pull data into an array so we can do fused ops
 ## LBM
 - [X] Add Equilibrium BC (inlet and outlet BC)
 - [X] Add Midside Bounceback stencils (Will be fused with BC)
@@ -23,4 +23,4 @@
 ## 
 
 ## Visualization
-- [] Add object to help clean up animation code
+- [X] Add object to help clean up animation code
