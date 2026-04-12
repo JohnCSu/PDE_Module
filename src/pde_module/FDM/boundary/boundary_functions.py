@@ -6,7 +6,7 @@ from pde_module.utils.types import wp_Function
 from dataclasses import dataclass
 
 
-def get_constant_func(constant: float,input_dtype,output_ids, float_type) -> wp_Function:
+def get_constant_func(constant: float,input_dtype,output_ids) -> wp_Function:
     """Create a function that returns a constant value.
 
     Args:
@@ -16,6 +16,7 @@ def get_constant_func(constant: float,input_dtype,output_ids, float_type) -> wp_
     Returns:
         A wp.func that returns the constant value.
     """
+    float_type = input_dtype._wp_scalar_type_
     constant = float(constant)
 
     match output_ids:
@@ -47,7 +48,7 @@ def get_constant_func(constant: float,input_dtype,output_ids, float_type) -> wp_
 
 
 
-def get_ramp_func(constant: float,T_max:float,input_dtype,output_ids, float_type) -> wp_Function:
+def get_ramp_func(constant: float,T_max:float,input_dtype,output_ids) -> wp_Function:
     """Create a ramp a function from 0 to constant from 0 to T_max.
     
     Args:
@@ -57,6 +58,7 @@ def get_ramp_func(constant: float,T_max:float,input_dtype,output_ids, float_type
     Returns:
         A wp.func that returns the ramp function.
     """
+    float_type = input_dtype._wp_scalar_type_
     constant = float(constant)
     T_max = float_type(T_max)
     
@@ -72,7 +74,7 @@ def get_ramp_func(constant: float,T_max:float,input_dtype,output_ids, float_type
     
     @wp.func
     def constant_value(
-        current_values: wp.array3d(dtype=input_dtype),
+        current_values: wp.array3d(dtype=Any),
         nodeID: wp.vec3i,
         coordinates: wp.array3d(dtype=vector(3, float_type)),
         t: float_type,

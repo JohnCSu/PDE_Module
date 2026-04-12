@@ -159,7 +159,7 @@ class GridBoundary(ExplicitUniformGridStencil):
         
         if not callable(value):
             assert isinstance(value, (float,int))
-            value = get_constant_func(value,self.input_dtype,output_ids,self.float_dtype)
+            value = get_constant_func(value,self.input_dtype,output_ids)
         
         assert isinstance(value,wp.Function), 'Function must be warp based'
         
@@ -209,7 +209,7 @@ class GridBoundary(ExplicitUniformGridStencil):
     def __call__(
         self,
         input_array: wp.array,
-        t: float = 0.0,
+        t: wp_Array = None,
         params: dict[str, Any] | None = None,
     ) -> wp_Array:
         """Apply boundary conditions to the input array.
@@ -244,14 +244,18 @@ class GridBoundary(ExplicitUniformGridStencil):
         self.output_array = self.create_output_array(input_array)
     @before_forward
     def set_default_params(
-        self, input_array: wp.array, t: float, params: dict[str, Any], **kwargs
+        self, input_array: wp.array, t: Optional[wp_Array], params: dict[str, Any], **kwargs
     ) -> None:
         """Set default parameters for function-based BCs."""
         for key in self.func_groups.keys():
             if key not in params.keys():
                 params[key] = wp.uint8(0)
-
-        self.t.fill_(self.float_dtype(t))
+                
+        if t is not None:
+            self.t = t
+        
+            
+        
 
     @before_forward
     def copy_array(self, input_array: wp.array, *args, **kwargs) -> None:
