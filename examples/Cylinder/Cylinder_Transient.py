@@ -56,6 +56,7 @@ from pde_module.FDM import (Laplacian,
                             ImmersedBoundary,
                             scalarVectorMult,
                             OuterProduct)
+from pde_module.FDM.boundary.boundary_functions import get_ramp_func
 from pde_module.time_step import ForwardEuler 
 from pde_module.stencil import MapWise
 from warp.types import vector
@@ -118,8 +119,9 @@ if __name__ == '__main__':
     
     u_BC = GridBoundary(u,dx,ghost_cells,grid.nodal_grid)
     
+    ramp_fn = get_ramp_func(U,10.,u.dtype,0)
     u_BC.vonNeumann_BC('ALL',0.)
-    u_BC.dirichlet_BC('-X',U,0)
+    u_BC.dirichlet_BC('-X',ramp_fn,0)
     
     u_cyl = ImmersedBoundary(u,dx,ghost_cells)
     u_cyl.from_bool_func(cyl,meshgrid)
@@ -150,7 +152,7 @@ if __name__ == '__main__':
     # print(rho.numpy().squeeze())
     rho_BC = GridBoundary(rho,dx,ghost_cells,grid.nodal_grid)
     rho_BC.vonNeumann_BC('ALL',0.)
-    rho_BC.dirichlet_BC('+X',density)
+    # rho_BC.dirichlet_BC('+X',density)
     
     p_grad = Grad(1,rho.shape,dx,ghost_cells)
     rho_step = ForwardEuler(rho.dtype)
@@ -182,7 +184,7 @@ if __name__ == '__main__':
     momentum = scalarVectorMult(2)
 
     np.set_printoptions(precision=1,suppress= False)
-    t= 0.
+    t= wp.array([0.],float)
     
     '''
     Forcing Term
@@ -192,8 +194,8 @@ if __name__ == '__main__':
         rho_ibm = rho_cyl(rho,fill_value = density)
         # u_ibm = u
         # rho_ibm = rho 
-        u_fix = u_BC(u_ibm)
-        rho_fix = rho_BC(rho_ibm)
+        u_fix = u_BC(u_ibm,t)
+        rho_fix = rho_BC(rho_ibm,t)
         # print(u_fix.numpy().squeeze()[:,:,0])
         m = momentum(rho_fix,u_fix)
         m_div = momentum_div(m,-1.)
@@ -212,9 +214,9 @@ if __name__ == '__main__':
         rho_far = rho_farfield(rho_fix,rho_ref,farfield_sigma_max)
         
         # Sum
-        u_F = dp - u_conv +u_diff + u_far + u_damp
+        u_F = dp - u_conv +u_diff + u_damp + u_far
         m_next = u_step(m,u_F,dt)    
-        rho_next = rho_step(rho_fix,m_div +rho_far,dt) #
+        rho_next = rho_step(rho_fix,m_div+rho_far,dt) #
       
         u_next = get_u_from_m(m_next,rho_next)
         u,rho = u_next,rho_next
@@ -225,6 +227,7 @@ if __name__ == '__main__':
  
     with wp.ScopedCapture() as capture:
         u,rho = f(t,u,rho)
+        t+=dt
     
     
     U_frame = u.numpy().squeeze()
@@ -247,17 +250,20 @@ if __name__ == '__main__':
     # 3. Open the movie file
     plotter.open_movie("transient_animation.gif")
     
-    num_frames = 450
-    step_per_frame = 100
-    for frame in range(num_frames):
-        t = frame*step_per_frame*dt
-        for i in range(step_per_frame):
-            wp.capture_launch(capture.graph)
-        U_frame = u.numpy().squeeze()
-        u_mag = np.sqrt(U_frame[:,:,0]**2 + U_frame[:,:,1]**2).reshape(len(grid.nodes))
-        pv_mesh.point_data['U_mag'] = u_mag
+    num_frames = 300
+    step_per_frame = 400
+    wp.set_mempool_release_threshold("cuda:0", 0.5)
+    with wp.ScopedTimer("Cylinder Transient"):
+        for frame in range(num_frames):
+            time = frame*step_per_frame*dt
+            for i in range(step_per_frame):
+                wp.capture_launch(capture.graph)
+                # u,rho = f(t,u,rho)
+            U_frame = u.numpy().squeeze()
+            u_mag = np.sqrt(U_frame[:,:,0]**2 + U_frame[:,:,1]**2).reshape(len(grid.nodes))
+            pv_mesh.point_data['U_mag'] = u_mag
+            
+            timer.input = f"Time: {time:.2f} seconds at Re = {Re}"
+            plotter.write_frame()
         
-        timer.input = f"Time: {t:.2f} seconds at Re = {Re}"
-        plotter.write_frame()
-    
     plotter.close()
