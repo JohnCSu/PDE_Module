@@ -18,7 +18,7 @@ class Faces:
     IDs: np.ndarray
     float_dtype: np.dtype
     int_dtype: np.dtype
-
+    _cell_to_face_array:np.ndarray
     def __init__(
         self,
         connectivity: np.ndarray,
@@ -49,8 +49,10 @@ class Faces:
             New Faces object.
         """
         assert isinstance(cells, Cells)
-        face_connectivity, face_IDs = get_faces(cells)
-        return cls(face_connectivity, face_IDs, cells.float_dtype, cells.int_dtype)
+        face_connectivity, face_IDs,cell_face_array = get_faces(cells)
+        face_obj = cls(face_connectivity, face_IDs, cells.float_dtype, cells.int_dtype)
+        face_obj._cell_to_face_array = cell_face_array
+        return face_obj
 
     def __len__(self) -> int:
         """Return the number of faces."""
