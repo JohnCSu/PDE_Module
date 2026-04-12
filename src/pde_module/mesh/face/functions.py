@@ -29,7 +29,7 @@ def get_faces(cells: Cells) -> tuple[np.ndarray, np.ndarray]:
     max_num_nodes = cells.int_dtype(
         max([CELLTYPES_DICT[key].max_nodes_per_face for key in cells.unique_cell_types])
     )
-
+    # print('hi')
     cell_face_array = _get_3d_facets_(
         cells.connectivity,
         cells.IDs,
@@ -39,8 +39,10 @@ def get_faces(cells: Cells) -> tuple[np.ndarray, np.ndarray]:
         LOCAL_FACE_ORDERING_DICT,
     )
 
-    unique_faces, face_ids = get_unique_faces(cell_face_array)
-    return unique_faces, face_ids,cell_face_array 
+    # print('hey')
+    # unique_faces, face_ids = get_unique_faces(cell_face_array)
+    unique_faces, face_ids,cell_to_face, cell_to_face_ids = get_unique_faces(cell_face_array)
+    return unique_faces, face_ids,cell_to_face, cell_to_face_ids
 
 
 def get_unique_faces(cell_face_array: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
@@ -52,20 +54,42 @@ def get_unique_faces(cell_face_array: np.ndarray) -> tuple[np.ndarray, np.ndarra
     Returns:
         Tuple of (unique_faces, face_ids).
     """
+    
+    
+    C,F,N = cell_face_array.shape
+    
+    # Flatten the first 2 dims of cell face so get a list of all faces (with duplicates)
     faces_array = cell_face_array.reshape(-1, cell_face_array.shape[-1])
+    
+    # Order each row in ascending order to spot duplicates
     sorted_faces = sort_rows(faces_array)
+    
+    # Get Unique Faces and Inverse, Use sorting unique to gurantee that empty row( all -1s ) is first row
+    # inverse is used to generate the cell_to_face array
     _, unique_indices, unique_inverse = np.unique(
         sorted_faces, axis=0, return_index=True, return_inverse=True
     )
+    
+    # The First Row could be the empty row i.e all -1s ( if we have diffferent face geoms) 
+    remove_first_face = False
+    if np.sum(faces_array[unique_indices[0]]) == -faces_array.shape[-1]:
+        unique_indices = unique_indices[1:]
+        remove_first_face = True
+        
+        
+    # #The First Row could be the empty row i.e all -1s ( if we have diffferent face geoms) 
+    # if np.sum(unique_faces[0]) == -unique_faces.shape[-1]:
+    #     unique_faces = unique_faces[1:]
+    
+    # 2D array, Each row is a unique face of nodes and make it contiguous
     unique_faces = np.ascontiguousarray(
         faces_array[unique_indices], dtype=cell_face_array.dtype
     )
-
-    if np.sum(unique_faces[0]) == -unique_faces.shape[-1]:
-        unique_faces = unique_faces[1:]
-
+    
     unique_faces, face_ids = flatten_and_filter_2D_array(unique_faces)
-    return unique_faces, face_ids
+    cell_to_face, cell_to_face_ids = flatten_and_filter_2D_array(unique_inverse.reshape((C,F)).astype(cell_face_array.dtype),filter_value=unique_indices[0] if remove_first_face else -1) # Ignore the filter
+    # print('hello')
+    return unique_faces, face_ids,cell_to_face, cell_to_face_ids
 
 
 @nb.njit(cache=True)
@@ -136,7 +160,7 @@ def _get_3d_facets_(
     cell_face_array = np.full(
         (len(cellIDs), max_num_faces, max_num_nodes), -1, dtype=cells_connectivity.dtype
     )
-
+    # print('ho')
     for i, ID in enumerate(cellIDs):
         num_nodes = cells_connectivity[ID]
 

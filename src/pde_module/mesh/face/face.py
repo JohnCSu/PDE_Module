@@ -18,7 +18,8 @@ class Faces:
     IDs: np.ndarray
     float_dtype: np.dtype
     int_dtype: np.dtype
-    _cell_to_face_array:np.ndarray
+    _cell_to_face_array_:np.ndarray
+    _cell_to_face_offset_:np.ndarray
     def __init__(
         self,
         connectivity: np.ndarray,
@@ -49,9 +50,10 @@ class Faces:
             New Faces object.
         """
         assert isinstance(cells, Cells)
-        face_connectivity, face_IDs,cell_face_array = get_faces(cells)
+        face_connectivity, face_IDs,cell_face_array, cell_face_offsets = get_faces(cells)
         face_obj = cls(face_connectivity, face_IDs, cells.float_dtype, cells.int_dtype)
-        face_obj._cell_to_face_array = cell_face_array
+        
+        face_obj._cell_to_face_array_,face_obj._cell_to_face_offset_ = (cell_face_array, cell_face_offsets)
         return face_obj
 
     def __len__(self) -> int:
@@ -60,7 +62,7 @@ class Faces:
 
 
 @nb.njit(cache=True)
-def _calculate_faces_area_normals_centroids(
+def calculate_faces_area_normals_centroids(
     nodes: np.ndarray, faces: np.ndarray, face_offsets: np.ndarray
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
     """Calculate area, normal, and centroid for each face.
