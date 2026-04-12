@@ -192,7 +192,7 @@ def get_mesh_dimension(unique_cell_types: np.ndarray, dim: Optional[int] = None)
 
 @nb.njit(cache=True)
 def getIDs(connectivity: np.ndarray):
-    buffer = np.ones(shape=len(connectivity), dtype=connectivity.dtype) * (-1)
+    buffer = np.full(shape=len(connectivity),fill_value = int(-1), dtype=connectivity.dtype)
     buffer_len = len(buffer)
 
     i = 0
@@ -217,20 +217,20 @@ def check_IDs(connectivity: np.ndarray, IDs: np.ndarray, max_nodeID: int):
 
 
 @nb.njit(cache=True)
-def flatten_and_filter_2D_array(arr_2D):
+def flatten_and_filter_2D_array(arr_2D,filter_value = -1):
     """
-    For an arbitary N,M array, remove the -1s and flatten to get a vtk style array. Must be integer array
+    For an arbitary N,M array, remove the targer value (default -1) and flatten to get a vtk style array. Must be integer array
     """
     items_per_row = np.empty(len(arr_2D), arr_2D.dtype)
     for i in range(len(arr_2D)):
-        num_items = np.sum((arr_2D[i] > -1).astype(np.int8))
+        num_items = np.sum((arr_2D[i] != filter_value).astype(np.int8))
         items_per_row[i] = num_items
 
     tmp_arr = np.concatenate((items_per_row[:, np.newaxis], arr_2D), axis=1)
 
-    flat_arr_2D = np.ascontiguousarray(tmp_arr.ravel()[tmp_arr.ravel() != -1])
+    flat_arr_2D = np.ascontiguousarray(tmp_arr.ravel()[tmp_arr.ravel() != filter_value])
     # Get IDs
-    flat_arr_2D_ids = np.empty_like(items_per_row)
+    flat_arr_2D_ids = np.empty_like(items_per_row,dtype=arr_2D.dtype)
     j = 0
     for i in range(len(flat_arr_2D_ids)):
         num_items = flat_arr_2D[j]
