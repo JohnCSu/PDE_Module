@@ -42,49 +42,60 @@ def create_Grad_kernel(
     ):
         i, j, k = wp.tid()
 
-        index = wp.vec3i(i, j, k)
-        index += dims_shift
         
-        stencil_array = get_neighbors(index[0], index[1], index[2],input_values) # D,2N+1 array
-        grad = grad_op(stencil_array,stencil,alpha)
-        output_values[index[0], index[1], index[2]] = grad
-    
+        nodeID = wp.vec3i(i, j, k)
+        nodeID += dims_shift
+       
+        output_values[nodeID[0], nodeID[1], nodeID[2]] = grad_op(input_values,nodeID,stencil,alpha)
+        
     
     
     return grad_kernel
 
 
 def create_grad_op( input_dtype: vector,output_dtype:wp_Matrix|wp_Vector, stencil: vector, grid_shape: tuple[int, ...]):
-    float_dtype =  input_dtype._wp_scalar_type_
-    length = stencil._length_
-    assert (length % 2) == 1, "stencil must be odd sized"
-    eligible_dims, _ = eligible_dims_and_shift(grid_shape,0)    
-    D = len(eligible_dims)
+    
+    dims, dims_shift = eligible_dims_and_shift(grid_shape,0)
+    dimension = len(dims)
+    float_dtype = input_dtype._wp_scalar_type_
     stencil_type = type(stencil)
+    length = stencil._length_
+    num_neighbors = (length-1)//2
+    
+    stencil_shift = vector(length,dtype = int)(*tuple(n for n in range(-num_neighbors,num_neighbors+1)))
+    
+    assert (length % 2) == 1, "stencil must be odd sized"
+    
     
     if type_is_vector(output_dtype):
         assert input_dtype._length_ == 1, 'Grad Kernel with Vector output only availiable for vectors of length 1'
-        assert output_dtype._length_ == D
+        assert output_dtype._length_ == dimension
     else:
         N,Dim  = output_dtype._shape_
-        assert Dim == D 
+        assert Dim == dimension 
         assert N == input_dtype._length_
     
     @wp.func
     def grad_func(
-        stencil_array:wp.array2d(dtype = input_dtype),
+        input_values:wp.array3d(dtype = input_dtype),
+        nodeID:wp.vec3i,
         stencil:stencil_type,
         alpha:float_dtype #D,2N+1
         ):
         output = output_dtype()
-        for axis in range(D): 
-            # N,D we need the columns
-            values = stencil_array[axis] # 2N+1 Arr
-            for i in range(length): # Stencil ops 
+        
+        for ii in range(dimension):
+            axis = dims[ii]
+            for jj in range(length):
+                nodeID[axis] += stencil_shift[jj]
                 if wp.static(type_is_vector(output_dtype)):
-                    output[axis] += stencil[i]*values[i][0] # Float * Vector(Length=1) 
+                    input_val = input_values[nodeID[0],nodeID[1],nodeID[2]][0] # Vector(Length=1) -> Vector(L = dimension)
+                    output[axis] += stencil[jj]*input_val
                 else:
-                    output[:,axis] += stencil[i]*values[i] # Float * Vector(Length=N)
+                    input_val = input_values[nodeID[0],nodeID[1],nodeID[2]] # Vector(L = N) -> Matrix(L,D)
+                    output[:,axis] += stencil[jj]*input_val
+            
+                nodeID[axis] -= stencil_shift[jj]
         
         return alpha*output
             
