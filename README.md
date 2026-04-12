@@ -1,22 +1,10 @@
 # PDE_Module
-PDE_Module is a fun little side project I am doing to help better understand GPU based simulations and my frustrations with trying to use open source/research implementations.
 
-It is a pytorch inspired framework (namely `torch.nn`) but instead aimed for quickly developing simulations and allowing easy changes while maintaining speed.
+Pure python based mesh-based simulation project accelerated by python DSLs such as Numba and Nvidia Warp to accelerate runtimes!
 
-From a high level simulations turn out to be very similar to Deep Learning networks in that many simulations are really just a composing of several differential terms (such as laplacian and divergence) together.
+Inspiration is taken from pytorch (namely `torch.nn`) which gave users acess to CUDA accelerated ops but with python's flxeibility ontop to allow for easy setup, analysis and dynamic behaviour of networks that would be difficult/cumbersome to do in lower level languages.
 
-# Why Warp?
-
-There are lots of DSL's availiable such as CuPy, taichi, pytorch and so on but warp has the following advantages:
-- unlike cupy, users write python code that is turned into Cuda code instead of simply writing cuda code. This makes it easier to get started.
-- Warp gives the best of both worlds: nice pythonic syntax with the speed of Cuda
-- Compared to Tensor based programming like pytorch, provides a lot more control over memory and operations as users have more control over individual threads and memory allocations are explicit
-
-Of course there are limitations and headaches with using a DSL (error tracebacks, library limitations etc) but I still think it blends a good balance between ease of writing and performance.
-
-# Goal
-
-The Goal is to create a system similar to nn.Module in pytorch: You construct simulations by combining different modules rather than having to directly keep track of all the tensors/arrays needed. Think of how modules in pytorch automatically keep track of internal buffers and tensors, and all the user needs to do is provide the input and output.
+From a high level, simulations turn out to be very similar to Deep Learning networks in that a single iteration can be thought of as a single network composing of many layers (such as laplacian and divergence terms) working together.
 
 # Examples!
 
@@ -34,32 +22,33 @@ The Goal is to create a system similar to nn.Module in pytorch: You construct si
 </table>
 
 
-# Features
+
+## 100%-ish python code
+
+Python is notoriously slow but highly dynamic and easy to setup and use. Most effecient codes require much lower level control and speed such as C++ and Fortran or CUDA. Like Neural networks we might want to have a lot of flexibility in how we combine different pieces/layers but the actual ops need to be fast.
+
+To do this we leverage 2 DSLs (so far):
+
+- [Numba](https://numba.readthedocs.io/en/stable/) for CPU based ops (mainly around meshing)
+- [Nvidia Warp](https://github.com/nvidia/warp) for CUDA based kernels mainly for accerlerated stencil compuation
+
+the -ish in the 100% comes from the fact that these DSL convert python code to intermediate languages (like CUDA) but as everything is in python, it is *hopefully* easy for user to change things
+
+Of course there are limitations and headaches with using a DSL (error tracebacks, library limitations etc) but I still think it blends a good balance between ease of writing and performance based code.
+
+## Simulation Availiable
+- Finite Difference (Uniform Grid, Symmetric Stencils)
+- Lattice Boltzmann
+
+
+## Features
 
 ## Array Input/Output
-Stencils take in arrays (and any additional arguments) and output arrays making it easy to understand behaviour and easy to hack behaviour inbetween operations
+Stencils behave like pytorch modules: inputs are arrays (and any additional arguments) and outputs are also arrays making it easy to understand behaviour and easy to combine modules together so long as array shapes match. Functional variants of operations are also availiable
 
 ## Fixed Output Array
-In a Stencil class, once the output array is allocated, it remains fixed so calling the same module multiple times will reuse the same buffer. This avoids costly and unnecessary memory reallocation and also allow us to use graph capture efficiently by needing to only capture a single iteration.
+Memory allocation can be costly, so modules by default allocate memory on setup and are fixed. This also makes graph capture much more straight forward.
 
-This is unlike ML frameworks which implicitly allocate new arrays each time you call a function (which is why fused kernels are so important for speed). New allocations are neccesary in ML as we have to store the activations of each pass. But this is not needed for simulations (unless we make it autograd differentiable) 
-
-## Stencils are Functional-esque
-All Stencil currently implemented do not do inplace modifications on the incoming array and always modify the output array (including applying boundary conditions which uses a copy first!). This makes it easier to reason on the behaviour of your simulation but increases memory usage.
-
-# Implemented
-
-Currently only AoS (Array of Structure) for Finite difference on a structured grid has been implemented.
-
-
-
-# To Add
-- Finite Volume on Uniform Grid
-- LBM
-- SoA style kernels (currently AoS kernels for simplicity)
-- Multi GPU framework
-- Unstructured Grids/Meshes
-- Differentiation
 
 # License
 - AGPL V3
