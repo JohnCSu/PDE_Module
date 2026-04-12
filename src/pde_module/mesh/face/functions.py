@@ -40,7 +40,7 @@ def get_faces(cells: Cells) -> tuple[np.ndarray, np.ndarray]:
     )
 
     unique_faces, face_ids = get_unique_faces(cell_face_array)
-    return unique_faces, face_ids
+    return unique_faces, face_ids,cell_face_array 
 
 
 def get_unique_faces(cell_face_array: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
