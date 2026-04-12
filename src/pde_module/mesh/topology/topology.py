@@ -17,7 +17,7 @@ class Flat_array_container:
 
 
 class Topology:
-    """Describes connectivity between mesh entities of different dimensions.
+    """Describes connectivity between mesh entities of different dimensions. For now we have 3D Cells to Faces
 
     Stores face-to-cell, cell-to-face, and cell-to-cell connectivity.
 
@@ -27,20 +27,29 @@ class Topology:
         cell_to_cell: Connectivity from cells to neighboring cells.
     """
 
-    face_to_cell: Flat_array_container
-    cell_to_face: Flat_array_container
-    cell_to_cell: Flat_array_container
-
-    def add(self, name: str, array: np.ndarray, ids: np.ndarray | None = None) -> None:
-        """Add a topology array.
-
-        Args:
-            name: Name for the topology array.
-            array: The connectivity array.
-            ids: Optional offset indices.
-        """
-        setattr(self, name, Flat_array_container(array, ids))
-
+    face_to_cell: np.ndarray
+    cell_to_face: np.ndarray
+    cell_to_cell: np.ndarray
+    _not_empty: bool
+    def __init__(self,cell_to_face_array= None,cell_to_face_offset= None):
+        if cell_to_face_array is not None:
+            assert cell_to_face_offset is not None
+            self.cell_to_face = cell_to_face_array
+            self.cell_to_face_offset = cell_to_face_offset
+            self._not_empty = True
+        else:
+            self._not_empty = False
+            
+    def set_face_to_cell(self,num_faces):
+        assert self._not_empty, 'cell_to_face_array must be passed in when initialising Topology'
+        self.face_to_cell = get_face_to_cell(self.cell_to_face,self.cell_to_face_offset,num_faces)
+        
+    def set_cell_to_cell(self):
+        if hasattr(self,'face_to_cell'):
+            self.cell_to_cell = get_cell_to_cell(self.cell_to_face,self.cell_to_face_offset,self.face_to_cell)
+        else:
+            raise AttributeError('face_to_cell must be initialised before cell-to-cell can be calculated')
+    
 
 @nb.njit(cache=True)
 def get_face_to_cell(
