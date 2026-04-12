@@ -52,7 +52,7 @@ def get_raw_edges(
     Returns:
         Raw edges array (N, 2).
     """
-    raw_edges = np.full((len(cell_offsets), num_max_edges, 2), -1)
+    raw_edges = np.full((len(cell_offsets), num_max_edges, 2), -1,dtype = cell_connectivity.dtype)
     for id in nb.prange(len(cell_offsets)):
         offset = cell_offsets[id]
         num_nodes = cell_connectivity[offset]
