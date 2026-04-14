@@ -68,11 +68,11 @@ tet_edges_local = np.array([
 
 wedge_faces_flat = np.array([
     5, # Num faces
-    3, 0, 1, 2,     # Face 0: Triangle (Bottom)
-    3, 3, 5, 4,     # Face 1: Triangle (Top)
-    4, 0, 3, 4, 1,  # Face 2: Quad (Side)
-    4, 1, 4, 5, 2,  # Face 3: Quad (Side)
-    4, 2, 5, 3, 0   # Face 4: Quad (Side)
+    3, 0, 2, 1,     # Face 0: Triangle (Bottom)
+    3, 3, 4, 5,     # Face 1: Triangle (Top)
+    4, 0, 1, 4, 3,  # Face 2: Quad (Side)
+    4, 1, 2, 5, 4,  # Face 3: Quad (Side)
+    4, 2, 0, 3, 5   # Face 4: Quad (Side)
 ], dtype=np.int32)
 
 wedge_edges_local = np.array([
