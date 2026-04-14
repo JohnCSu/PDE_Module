@@ -6,6 +6,7 @@ from pde_module.mesh.mesh import Mesh
 
 CellType = Literal["hex", "tet", "wedge"]
 
+
 def generate_cube_mesh(
     size: tuple[float, float, float] = (1.0, 1.0, 1.0),
     divisions: tuple[int, int, int] = (2, 2, 2),
@@ -28,8 +29,6 @@ def generate_cube_mesh(
     """
     gmsh.initialize()
 
-    
-
     model = gmsh.model()
     model.add("cube_mesh")
     model.setCurrent("cube_mesh")
@@ -39,7 +38,10 @@ def generate_cube_mesh(
 
     lc = min(Lx, Ly, Lz) / max(nx, ny, nz)
 
-    box_tag = model.occ.addBox(0, 0, 0, Lx, Ly, Lz)
+    if cell_type == "wedge":
+        box_tag = None
+    else:
+        box_tag = model.occ.addBox(0, 0, 0, Lx, Ly, Lz)
     model.occ.synchronize()
 
     if cell_type == "hex":
@@ -77,13 +79,21 @@ def generate_cube_mesh(
         gmsh.option.setNumber("Mesh.MeshSizeMin", lc)
         gmsh.option.setNumber("Mesh.MeshSizeMax", lc)
 
-        for curve_tag in range(1, 13):
-            model.mesh.setTransfiniteCurve(curve_tag, max(nx, ny, nz) + 1)
+        bottom_face_tag = model.occ.addRectangle(0, 0, 0, Lx, Ly)
+        model.occ.synchronize()
 
-        for surf_tag in range(1, 7):
-            model.mesh.setTransfiniteSurface(surf_tag)
+        model.mesh.setTransfiniteCurve(1, nx + 1)
+        model.mesh.setTransfiniteCurve(2, ny + 1)
+        model.mesh.setTransfiniteCurve(3, nx + 1)
+        model.mesh.setTransfiniteCurve(4, ny + 1)
+        model.mesh.setTransfiniteSurface(bottom_face_tag)
+        model.mesh.generate(2)
 
-        model.mesh.setTransfiniteVolume(box_tag)
+        out_dim_tags = model.occ.extrude(
+            [(2, bottom_face_tag)], 0, 0, Lz, numElements=[nz], recombine=True
+        )
+        model.occ.synchronize()
+
         model.mesh.generate(3)
 
     node_tags, node_coords, _ = model.mesh.getNodes()
@@ -131,7 +141,7 @@ def generate_cube_mesh(
     if show_gui:
         gmsh.fltk.run()
     gmsh.finalize()
-    
+
     mesh = Mesh(
         nodes=nodes,
         cells_connectivity=cells_array,
