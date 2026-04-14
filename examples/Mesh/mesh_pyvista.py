@@ -23,9 +23,9 @@ if __name__ == '__main__':
     [0.0, 0.0, 1.0], # Node 3
     [1.0, 0.0, 1.0], # Node 4
     [0.0, 1.0, 1.0]  # Node 5
-])
+],np.float32)
     
-    wedge_coords[:,2] += 2.
+    # wedge_coords[:,2] += 2.
     
     tet_connectivity = np.array([0,0, 1, 2, 3]) + len(hex_nodes)
     tet_connectivity[0] = 4
@@ -40,9 +40,26 @@ if __name__ == '__main__':
     elem_connectivity = np.concat((vtk_connectivity,tet_connectivity,wedge_connectivity),dtype= np.int32)
     cell_types = np.array([HEX.id,HEX.id,TETRA.id,WEDGE.id],np.int32)
     
-    mesh = Mesh(nodes,elem_connectivity,cell_types)
+    
+    
+    # mesh = Mesh(nodes,elem_connectivity,cell_types)
+    # tet_connectivity = np.array([0,0, 1, 2, 3],np.int32)
+    # tet_connectivity[0] = 4
+    # cell_types = np.array([TETRA.id],np.int32)
+    # mesh = Mesh(tet_coords,tet_connectivity,cell_types)
+    
+    
+    wedge_connectivity = np.array([0,0, 1, 2, 3, 4, 5],np.int32)
+    wedge_connectivity[0] = 6
+    cell_types = np.array([WEDGE.id],np.int32)
+    mesh = Mesh(wedge_coords,wedge_connectivity,cell_types)
+    
     
     # print(mesh)
-    pv_mesh = to_pyvista(mesh)
-    pv_mesh.plot(show_edges=True)
+    # pv_mesh = to_pyvista(mesh)
+    # pv_mesh.plot(show_edges=True)
     
+    
+    print(mesh.faces.connectivity)
+    print(mesh.faces._cell_to_face_array_)
+    print(mesh.faces._cell_to_face_offset_)
