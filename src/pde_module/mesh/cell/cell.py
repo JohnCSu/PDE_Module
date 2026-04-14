@@ -1,9 +1,9 @@
 import numpy as np
 import numba as nb
 from pde_module.mesh.utils import getIDs, check_IDs
-from .functions import check_cell_types
+from .functions import check_cell_types,calculate_cell_centroids,calculate_cell_volumes
 from dataclasses import dataclass
-
+from typing import Optional
 
 class Cells:
     """Represents volumetric cells with VTK-style connectivity.
@@ -26,7 +26,8 @@ class Cells:
     types: np.ndarray
     float_dtype: np.dtype
     int_dtype: np.dtype
-
+    centroids: Optional[np.ndarray] = None
+    volumes: Optional[np.ndarray] = None
     def __init__(
         self,
         nodes: np.ndarray,
@@ -58,6 +59,22 @@ class Cells:
         assert self.IDs.shape == self.types.shape
         check_cell_types(self.connectivity, self.IDs, self.types)
 
+    def get_centroids(self,nodes):
+        self.centroids = calculate_cell_centroids(nodes,self.connectivity,self.IDs)
+    
+    def get_volumes(self,cell_to_face,cell_to_face_offset,face_centroids,face_normals):
+        self.volumes = calculate_cell_volumes(self.centroids,cell_to_face,cell_to_face_offset,face_centroids,face_normals,dimension = 3)
+    
     def __len__(self) -> int:
         """Return the number of cells."""
         return len(self.IDs)
+
+
+
+
+        
+        
+        
+    
+    
+    
