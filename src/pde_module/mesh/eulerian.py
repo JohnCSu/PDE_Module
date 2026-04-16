@@ -8,4 +8,4 @@ class EulerianMesh(Mesh):
         self.faces.get_OwnerNeighbor()
         self.cells.get_centroids(self.nodes)
         self.cells.get_volumes(self.faces._cell_to_face_array_,self.faces._cell_to_face_offset_,self.faces.centroids,self.faces.normals)
-        
+        self.cells.get_neighbors(self.faces._cell_to_face_array_,self.faces._cell_to_face_offset_,self.faces.ownerNeighbor)
