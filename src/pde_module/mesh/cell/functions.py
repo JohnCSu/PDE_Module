@@ -118,15 +118,6 @@ def _check_cell_types(
 
 @nb.njit(parallel= True,cache = True)
 def calculate_neighbors(cell_to_face,cell_to_face_offset,ownerNeighbor):
-    # we have at most cell_to_face length
-    cell_neighbors = np.full_like(cell_to_face,fill_value=-1,dtype = cell_to_face.dtype)
-    
-    
-    cell_neighbors_count = np.empty(len(cell_to_face_offset) +1, dtype = cell_to_face_offset.dtype)
-    cell_neighbors_count[0] = 0
-    
-    num_cells = len(cell_to_face_offset)
-    
     ''' 
     Go through all faces and check first if owner or neighbor. 
         If owner, check if boundary or interior face. if boundary add -1 otherwise add neighborID
@@ -138,6 +129,15 @@ def calculate_neighbors(cell_to_face,cell_to_face_offset,ownerNeighbor):
         Create a new array based on total neighbors
 
     '''
+    # we have at most cell_to_face length
+    cell_neighbors = np.empty(shape = (len(cell_to_face),2),dtype = cell_to_face.dtype)
+    
+    cell_neighbors_count = np.empty(len(cell_to_face_offset) +1, dtype = cell_to_face_offset.dtype)
+    cell_neighbors_count[0] = 0
+    
+    num_cells = len(cell_to_face_offset)
+    
+    
     for cell_id in nb.prange(num_cells):
         offset = cell_to_face_offset[cell_id]
         num_faces = cell_to_face[offset]
@@ -148,26 +148,29 @@ def calculate_neighbors(cell_to_face,cell_to_face_offset,ownerNeighbor):
             ownerID,neighborID = ownerNeighbor[faceID]
             if ownerID == cell_id: # Check the neighbor ID for boundary. If not leave as -1
                 is_interior = neighborID != -1
-                cell_neighbors[offset + 1 + num_neighbors] = np.where(is_interior,neighborID,-1)
+                cell_neighbors[offset + 1 + num_neighbors][0] = np.where(is_interior,neighborID,-1)
+                cell_neighbors[offset + 1 + num_neighbors][1] = np.where(is_interior,faceID,-1)
+                
                 num_neighbors += np.int64(is_interior) # Increment by one if face is internal face
             else: # Must be neighborID then just add ownerID
-                cell_neighbors[offset + 1 + num_neighbors] = ownerID
+                cell_neighbors[offset + 1 + num_neighbors][0] = ownerID
+                cell_neighbors[offset + 1 + num_neighbors][1] = faceID
                 num_neighbors += 1
         
         cell_neighbors_count[cell_id+1] = num_neighbors
         cell_neighbors[offset] = num_neighbors
     # print(cell_neighbors_count)
-    cell_neighbors_offsets = np.cumsum(cell_neighbors_count)
     
+    # cell_neighbors_offsets = np.empty(len(cell_neighbors_count),dtype = cell_to_face.dtype)
+    cell_neighbors_offsets = np.cumsum(cell_neighbors_count).astype(cell_to_face.dtype)
     total_length = cell_neighbors_offsets[-1] + num_cells
-    # print(total_length)
-    # print(cell_neighbors_offsets)
-    cell_neighbors_out = np.empty(shape = total_length,dtype = cell_to_face.dtype)
+    cell_neighbors_out = np.empty(shape = (total_length,2),dtype = cell_to_face.dtype)
     
     for cell_id in nb.prange(num_cells):
         original_offset = cell_to_face_offset[cell_id]
         new_offset = cell_neighbors_offsets[cell_id] + cell_id
-        num_neighbors = cell_neighbors[original_offset]
+        
+        num_neighbors = cell_neighbors[original_offset][0]
         cell_neighbors_out[new_offset] = num_neighbors
         for j in range(num_neighbors):
             cell_neighbors_out[new_offset+j+1] = cell_neighbors[original_offset+j+1]
