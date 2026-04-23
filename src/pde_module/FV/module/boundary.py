@@ -4,8 +4,8 @@ from pde_module.utils import get_unique_key
 import numpy as np
 import warp as wp
 from .finiteVolume import FiniteVolume
-from .flags import DIRICHLET,VON_NEUMANN
-from .mesh import FiniteVolumeMesh
+from ..flags import DIRICHLET,VON_NEUMANN
+from ..mesh import FiniteVolumeMesh
 from warp.types import vector
 
 
