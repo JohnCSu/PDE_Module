@@ -1,7 +1,7 @@
 import warp as wp
 from warp.types import vector, matrix, type_is_vector, type_is_matrix, types_equal
 from pde_module.utils.types import *
-from pde_module.FDM.utils import eligible_dims_and_shift,create_n_point_stencil_function
+from pde_module.FDM.utils import eligible_dims_and_shift
 
 
 def create_Divergence_kernel(

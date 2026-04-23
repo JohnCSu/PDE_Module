@@ -1,6 +1,6 @@
 import warp as wp
 from warp.types import vector
-from pde_module.FDM.utils import eligible_dims_and_shift,create_n_point_stencil_function,create_stencil_over_axis_function
+from pde_module.FDM.utils import eligible_dims_and_shift
 from pde_module.utils.types import wp_Vector, wp_Kernel
 
 

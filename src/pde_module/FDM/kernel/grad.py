@@ -3,7 +3,7 @@ from warp.types import vector, type_is_vector, type_is_matrix
 from pde_module.stencil.utils import create_stencil_op, eligible_dims_and_shift
 from pde_module.utils.types import wp_Vector, wp_Matrix, wp_Kernel
 
-from pde_module.FDM.utils import eligible_dims_and_shift,create_n_point_stencil_function,create_stencil_over_axis_function
+from pde_module.FDM.utils import eligible_dims_and_shift
 
 def create_Grad_kernel(
     input_vector: wp_Vector,
