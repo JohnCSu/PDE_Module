@@ -1,3 +1,2 @@
-from .diffusion import Diffusion
-from .boundary import Boundary
+from .module import Diffusion,Boundary,Advection
 from .mesh import FiniteVolumeMesh
