@@ -7,7 +7,7 @@ import warp as wp
 import pyvista as pv
 
 wp.init()
-
+wp.set_module_options({"enable_backward": False})
 
 N = 101
 nodes_per_axis = (N,N,2)
@@ -49,7 +49,7 @@ t=0
 
 print(len(FV_mesh.exterior_faces))
 
-with wp.ScopedTimer('Laplace',cuda_filter=wp.TIMING_ALL):
+with wp.ScopedTimer('Laplace',cuda_filter=wp.TIMING_KERNEL):
     for i in range(1000):
         u_BC = BC(u)
         laplace = diff(u,u_BC,alpha)
