@@ -13,6 +13,7 @@ def generate_cube_mesh(
     cell_type: CellType = "hex",
     mesh_size_factor: float = 0.1,
     show_gui: bool = False,
+    return_as_mesh = True,
 ) -> Mesh:
     """
     Generate a cube mesh using Gmsh. This is vibe coded, use this as a basic testing example
@@ -142,10 +143,13 @@ def generate_cube_mesh(
         gmsh.fltk.run()
     gmsh.finalize()
 
-    mesh = Mesh(
-        nodes=nodes,
-        cells_connectivity=cells_array,
-        cell_types=cell_types_array,
-    )
-
-    return mesh
+    
+    if return_as_mesh:
+        mesh = Mesh(
+            nodes=nodes,
+            cells_connectivity=cells_array,
+            cell_types=cell_types_array,
+        )
+        return mesh
+    else:
+        return nodes,cells_array,cell_types_array

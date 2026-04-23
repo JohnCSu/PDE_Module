@@ -1,1 +1,0 @@
-from .cube import generate_cube_mesh
