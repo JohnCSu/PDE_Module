@@ -64,7 +64,8 @@ class Boundary(FiniteVolume):
                       exterior.cell_ids,
                       self.boundary_values,
                       self.boundary_types,
-                      exterior.inv_dist
+                      exterior.centroids,
+                      self.mesh.cell_centroids
                   ],
                   
                   outputs = [self.boundary_field])
@@ -78,15 +79,16 @@ class Boundary(FiniteVolume):
 def create_FV_Boundary_kernel(num_vars,float_dtype):
     
     
+    vec3 = vector(3,float_dtype)
+    
     @wp.kernel
     def boundary_kernel(
         cell_field:wp.array2d[float_dtype],
         face_to_cell_id:wp.array1d[int],
         boundary_values:wp.array2d[float_dtype],
         boundary_types:wp.array2d[wp.uint8],
-        # face_centroid:wp.array2d[wp.vec3f],
-        # cell_centroid:wp.array2d[wp.vec3f],
-        inv_dist:wp.array1d[float_dtype],
+        exterior_face_centroid:wp.array1d[vec3],
+        cell_centroids:wp.array1d[vec3],
         boundary_face_field:wp.array2d[float_dtype]
         ):
         
@@ -100,8 +102,7 @@ def create_FV_Boundary_kernel(num_vars,float_dtype):
             if BC_type == DIRICHLET: # we can just set the 
                 boundary_face_field[var,tid] = BC_value    
             else:
-                # dist = 
-                boundary_face_field[var,tid] = cell_field[var,cell_id] + BC_value/inv_dist[tid]     
+                boundary_face_field[var,tid] = cell_field[var,cell_id] + BC_value/wp.length(exterior_face_centroid[tid] - cell_centroids[tid])     
             
     return boundary_kernel
     

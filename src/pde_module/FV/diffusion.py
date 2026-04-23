@@ -113,7 +113,6 @@ def create_diffusion_kernel(num_vars,float_dtype):
         volume = cell_volumes[cell_id]
         dist = wp.length(face_centroids[tid] - cell_centroids[cell_id])
         area = wp.length(face_normals[tid])
-        
         # volume = 1.
         alpha = viscosity*area/(volume*dist)
         

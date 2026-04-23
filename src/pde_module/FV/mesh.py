@@ -8,7 +8,6 @@ from typing import Any
 
 @dataclass
 class Interior_Faces:
-    inv_dist: wp.array
     face_ids: np.ndarray |wp.array
     ownerNeighbor: np.ndarray|wp.array
     normals: np.ndarray|wp.array
@@ -27,13 +26,10 @@ class Interior_Faces:
         self.ownerNeighbor = wp.array(self.ownerNeighbor,dtype=wp.vec2i)
         self.normals = wp.array(self.normals,dtype = vector(3,float_dtype))
         self.centroids = wp.array(self.centroids,dtype = vector(3,float_dtype))
-        self.inv_dist = wp.zeros(shape = len(self.centroids),dtype= float_dtype)
-        wp.launch(compute_internal_inv_dist,len(self),[cell_centroids,self.ownerNeighbor],outputs = [self.inv_dist])
     
     def __len__(self):
         return len(self.face_ids)
 class Exterior_Faces:
-    inv_dist: wp.array
     face_ids: np.ndarray
     cell_ids: np.ndarray
     normals: np.ndarray
@@ -56,9 +52,7 @@ class Exterior_Faces:
         self.cell_ids = wp.array(self.cell_ids,dtype=int)
         self.normals = wp.array(self.normals,dtype = vector(3,float_dtype))
         self.centroids = wp.array(self.centroids,dtype = vector(3,float_dtype))
-        self.inv_dist = wp.zeros(shape = len(self.centroids),dtype= float_dtype)
-        wp.launch(compute_external_inv_dist,len(self),inputs = [self.centroids,cell_centroids,self.cell_ids],outputs = [self.inv_dist])
-        
+
     def __len__(self):
         return len(self.face_ids)
 
