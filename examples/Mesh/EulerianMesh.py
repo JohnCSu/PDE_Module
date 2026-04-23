@@ -1,17 +1,28 @@
 import numpy as np
 from pde_module.mesh import EulerianMesh
-from pde_module.mesh.gmsh import generate_cube_mesh
+from pde_module.mesh.mesh_generators import generate_cube_mesh
 from pde_module.mesh import to_pyvista
 import pyvista as pv
 
 if __name__ == "__main__":
     # mesh = generate_cube_mesh_simple(divisions= 1,cell_type='wedge')
-    mesh = generate_cube_mesh(cell_type='hex',show_gui=False,divisions=(2,2,2))
+    mesh = generate_cube_mesh(cell_type='hex',show_gui=False,divisions=(3,3,3))
     
     EulerMesh = EulerianMesh(mesh.nodes,mesh.cells.connectivity,mesh.cells.types)
     
-    print(EulerMesh.faces.ownerNeighbor)
-    print(EulerMesh.cells.volumes)
+    # print(EulerMesh.faces.ownerNeighbor)
+    # print(EulerMesh.cells.volumes)
+    print(EulerMesh.cells.neighbors)
+    print(EulerMesh.cells.neighbors_offset)
+    
+    
+    middle_cell_offset = EulerMesh.cells.neighbors_offset[13]
+    num_neighbors = EulerMesh.cells.neighbors[middle_cell_offset]
+    print(EulerMesh.cells.neighbors[middle_cell_offset:middle_cell_offset+num_neighbors+1])
+    
+    assert num_neighbors == 6
+     
+    
     cell_ids = np.arange(len(EulerMesh.cells))
     # assert len(mesh.cells) == 2
     pv_mesh = to_pyvista(EulerMesh)

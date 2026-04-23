@@ -1,6 +1,6 @@
 import numpy as np
 from pde_module.mesh import Mesh
-from pde_module.mesh.gmsh import generate_cube_mesh
+from pde_module.mesh.mesh_generators import generate_cube_mesh
 
 
 if __name__ == "__main__":
