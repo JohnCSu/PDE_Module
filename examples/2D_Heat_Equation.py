@@ -54,14 +54,15 @@ if __name__ == '__main__':
     BC.setup(u)
     print(f'Max u = {u.numpy().max()} at t = {0},iter = {0}')
     t= 0
-    for i in range(1000):
-        u2 = BC(u)
-        stencil =lapl(u2,alpha)
-        u_next = euler_step(u2,stencil,dt)
-        u = u_next
-        t+= dt
-        if i % 100 == 0:
-            print(f'Max u = {u.numpy().max()} at t = {t},iter = {i}')
+    with wp.ScopedTimer('Laplace',cuda_filter=wp.TIMING_ALL):
+        for i in range(1000):
+            u2 = BC(u)
+            stencil =lapl(u2,alpha)
+            u_next = euler_step(u2,stencil,dt)
+            u = u_next
+            t+= dt
+            if i % 100 == 0:
+                print(f'Max u = {u.numpy().max()} at t = {t},iter = {i}')
     
 meshgrid = grid.meshgrid
 plt.contourf(*[m.squeeze() for m in meshgrid[:2]],u.numpy().squeeze(),cmap ='jet',levels = 100)
