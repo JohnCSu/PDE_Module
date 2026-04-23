@@ -1,0 +1,121 @@
+from pde_module.FV.mesh import FiniteVolumeMesh
+from .finiteVolume import FiniteVolume
+import warp as wp
+from warp.types import vector
+
+from pde_module.stencil.hooks import *
+
+class Grad(FiniteVolume):
+    def __init__(self, mesh, float_dtype=wp.float32):
+        super().__init__(mesh, float_dtype)
+        
+    
+    @setup
+    def initialise(self,cell_field,boundary_values,alpha = 1.):
+        self.mesh.to_warp()
+        
+        assert cell_field.shape[0] == 1 , 'Only scalar fields availiable for now'
+        self.field_shape = cell_field.shape
+        self.num_vars = cell_field.shape[0]
+        self.num_cells = cell_field.shape[-1]
+        self.num_boundary_faces = len(self.mesh.exterior_faces)
+        self.internal_kernel,self.external_kernel = create_grad_kernel(self.float_dtype)
+        self.output_field = wp.empty((3,self.num_cells),dtype=cell_field.dtype)
+        
+    def forward(self,cell_field,boundary_values,alpha = 1.):
+        
+        wp.launch(self.internal_kernel,dim = self.num_cells,
+                  inputs=[
+                        cell_field,
+                        alpha,
+                        self.mesh.neighbors,
+                        self.mesh.neighbors_offset,
+                        self.mesh.face_normals,
+                        self.mesh.cell_volumes
+                    ],
+                  outputs =[
+                      self.output_field
+                  ])
+        
+        wp.launch(self.external_kernel,dim = self.num_boundary_faces,
+                  inputs=[
+                        boundary_values,
+                        alpha,
+                        self.mesh.exterior_faces.cell_ids,
+                        self.mesh.exterior_faces.normals,
+                        self.mesh.cell_volumes
+                  ],
+                  outputs =[
+                      self.output_field
+                  ])
+        
+        return self.output_field
+                      
+
+
+def create_grad_kernel(float_dtype):
+    
+    vec3 = vector(3,float_dtype)
+    
+    @wp.kernel
+    def grad_internal_kernel(
+                    cell_field:wp.array2d[float_dtype],
+                    alpha:float,
+                    cell_neighbors:wp.array1d[wp.vec2i],
+                    cell_neighbors_offsets:wp.array1d[int],
+                    face_normals:wp.array1d[vec3],
+                    cell_volumes:wp.array1d[float_dtype],
+                    grad_field:wp.array2d[float_dtype]):
+        cell_id = wp.tid()
+        
+        cell_volume = cell_volumes[cell_id]
+        
+        offset = cell_neighbors_offsets[cell_id]
+        num_neighbors = cell_neighbors[offset][0]
+        cell_volume = cell_volumes[cell_id]
+        
+        grad = vec3()
+        
+        for i in range(num_neighbors):
+            neighbor_info = cell_neighbors[offset + 1 + i]
+            neighbor_id = neighbor_info[0]
+            face_id = neighbor_info[1]
+            face_normal = wp.where(cell_id < neighbor_id,float_dtype(1.),float_dtype(-1.))*face_normals[face_id]
+            face_val = face_normal*(cell_field[0,cell_id] + cell_field[0,neighbor_id])/2. # Need to change for unstructured
+            grad += face_val
+        
+        grad /= alpha*cell_volume
+        for j in range(3):
+            grad_field[j,cell_id] = grad[j] 
+    
+    
+    @wp.kernel
+    def grad_external_kernel(
+                            boundary_value:wp.array2d[float_dtype],
+                            alpha:float_dtype,
+                            boundary_face_to_cell_id:wp.array1d[int],
+                            face_normals:wp.array1d[vec3],
+                            cell_volumes:wp.array1d[float_dtype],
+                            grad_field:wp.array2d[float_dtype]):
+        
+        tid = wp.tid()
+        
+        cell_id = boundary_face_to_cell_id[tid]
+        face_normal = face_normals[tid]
+        cell_volume = cell_volumes[cell_id]
+        
+        grad = boundary_value[tid]*face_normal*alpha/cell_volume
+        
+        for j in range(3):
+            grad_field[j,cell_id] = grad[j] 
+        
+    return grad_internal_kernel,grad_external_kernel
+        
+       
+        
+        
+        
+        
+    
+        
+        
