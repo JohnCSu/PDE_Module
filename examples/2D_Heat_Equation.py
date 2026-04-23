@@ -54,7 +54,7 @@ if __name__ == '__main__':
     BC.setup(u)
     print(f'Max u = {u.numpy().max()} at t = {0},iter = {0}')
     t= 0
-    with wp.ScopedTimer('Laplace',cuda_filter=wp.TIMING_ALL):
+    with wp.ScopedTimer('Laplace'):
         for i in range(1000):
             u2 = BC(u)
             stencil =lapl(u2,alpha)
