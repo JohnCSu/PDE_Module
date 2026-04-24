@@ -41,12 +41,8 @@ class Exterior_Faces:
         self.cell_ids = faces.ownerNeighbor[exterior_only_mask,0]
         self.normals = faces.normals[exterior_only_mask,:]
         self.centroids = faces.centroids[exterior_only_mask,:]
-        # self.inv_dist = np.zeros_like(self.centroids)
         self.groups = {'ALL':np.arange(len(self),dtype=np.int32)}
-        
-        
-    
-    
+
     def to_warp(self,cell_centroids:wp.array[wp.vec3f],float_dtype = wp.float32):
         self.face_ids = wp.array(self.face_ids,dtype=int)
         self.cell_ids = wp.array(self.cell_ids,dtype=int)
@@ -55,9 +51,6 @@ class Exterior_Faces:
 
     def __len__(self):
         return len(self.face_ids)
-
-
-
 
 @wp.kernel
 def compute_external_inv_dist(face_centroids:wp.array1d[wp.vec3f],
@@ -99,7 +92,8 @@ class FiniteVolumeMesh(EulerianMesh):
         if not self.is_warped:
             self.is_warped = True
             
-            self.face_normals = wp.array(self.faces.normals,dtype= wp.vec3f) 
+            self.face_normals = wp.array(self.faces.normals,dtype= wp.vec3f)
+            self.face_centroids = wp.array(self.faces.centroids,dtype= wp.vec3f)
             self.cell_centroids = wp.array(self.cells.centroids,dtype= wp.vec3f)
             self.cell_volumes = wp.array(self.cells.volumes)
             self.neighbors = wp.array(self.cells.neighbors,dtype = wp.vec2i)
