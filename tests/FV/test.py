@@ -40,6 +40,7 @@ def test():
     diff = Diffusion(FV_mesh)
     grad = Grad(FV_mesh)
     div = Divergence(FV_mesh)
+    vel_adv = Advection(FV_mesh)
     
     
     vel_BC = Boundary(FV_mesh,3)
@@ -58,20 +59,25 @@ def test():
     dt = float(dx**2/(4*alpha))
     t=0
 
+    
+    
     scalar_BC = BC(scalar)
     scalar_grad = grad(scalar,scalar_BC,alpha = 1.)
     laplace = diff(scalar,scalar_BC,alpha)
     
     vel_boundary = vel_BC(velocity)
-    conv = adv(scalar,scalar_BC,velocity,vel_boundary,density = 1.)
+    scalar_conv = adv(scalar,scalar_BC,velocity,vel_boundary,density = 1.)
+    
+    vel_conv = vel_adv(velocity,vel_boundary,velocity,vel_boundary,density = 1.)
+    
+    
     u_div = div(velocity,vel_boundary) # Scalar
     
     # Test outputs match
-    
-    assert u_div.shape == laplace.shape
-    assert conv.shape == scalar_grad.shape
+    assert scalar_conv.shape == u_div.shape == laplace.shape
+    assert  scalar_grad.shape == vel_conv.shape
     u_div + laplace
-    conv+ scalar_grad
+    vel_conv+ scalar_grad
     
     return True
 
