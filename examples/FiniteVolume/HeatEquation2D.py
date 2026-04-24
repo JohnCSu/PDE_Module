@@ -37,7 +37,7 @@ print(np.linalg.vector_norm(FV_mesh.exterior_faces.normals,axis = 1,ord = 2))
 u = FV_mesh.create_cell_field(1,IC)
 
 diff = Diffusion(FV_mesh)
-BC = Boundary(1,FV_mesh)
+BC = Boundary(FV_mesh,1)
 BC.set_BC('ALL',flags.DIRICHLET,0)
 BC.set_BC('-Z',flags.VON_NEUMANN,0)
 BC.set_BC('+Z',flags.VON_NEUMANN,0)
