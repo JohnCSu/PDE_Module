@@ -6,6 +6,10 @@ from warp.types import vector
 from pde_module.stencil.hooks import *
 
 class Grad(FiniteVolume):
+    '''
+    Only Scalar Fields are currently Supported
+    '''
+    
     def __init__(self, mesh, float_dtype=wp.float32):
         super().__init__(mesh, float_dtype)
         
@@ -51,7 +55,6 @@ class Grad(FiniteVolume):
         
         return self.output_field
                       
-
 
 def create_grad_kernel(float_dtype):
     
@@ -104,7 +107,7 @@ def create_grad_kernel(float_dtype):
         face_normal = face_normals[tid]
         cell_volume = cell_volumes[cell_id]
         
-        grad = boundary_value[tid]*face_normal*alpha/cell_volume
+        grad = boundary_value[0,tid]*face_normal*alpha/cell_volume
         
         for j in range(3):
             grad_field[j,cell_id] = grad[j] 
