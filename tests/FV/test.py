@@ -41,7 +41,7 @@ def test():
     grad = Grad(FV_mesh)
     div = Divergence(FV_mesh)
     vel_adv = Advection(FV_mesh)
-    
+    vel_diff = Diffusion(FV_mesh)
     
     vel_BC = Boundary(FV_mesh,3)
     vel_BC.set_BC('ALL',flags.DIRICHLET,0)
@@ -66,8 +66,9 @@ def test():
     laplace = diff(scalar,scalar_BC,alpha)
     
     vel_boundary = vel_BC(velocity)
-    scalar_conv = adv(scalar,scalar_BC,velocity,vel_boundary,density = 1.)
+    vel_lapl = vel_diff(velocity,vel_boundary,alpha)
     
+    scalar_conv = adv(scalar,scalar_BC,velocity,vel_boundary,density = 1.)
     vel_conv = vel_adv(velocity,vel_boundary,velocity,vel_boundary,density = 1.)
     
     
@@ -75,9 +76,9 @@ def test():
     
     # Test outputs match
     assert scalar_conv.shape == u_div.shape == laplace.shape
-    assert  scalar_grad.shape == vel_conv.shape
-    u_div + laplace
-    vel_conv+ scalar_grad
+    assert  scalar_grad.shape == vel_conv.shape == vel_lapl.shape
+    u_div + laplace # Scalar Trans
+    vel_conv+ scalar_grad + vel_lapl # Mimic NS
     
     return True
 
