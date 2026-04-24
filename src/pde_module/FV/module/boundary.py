@@ -10,9 +10,7 @@ from warp.types import vector
 
 
 class Boundary(FiniteVolume):
-    # For now lets just do fixed vonneuman and dirichlet
-    
-    def __init__(self,num_vars,mesh:FiniteVolumeMesh,float_dtype=wp.float32):
+    def __init__(self,mesh:FiniteVolumeMesh,num_vars,float_dtype=wp.float32):
         assert isinstance(mesh,FiniteVolumeMesh)
         super().__init__(float_dtype)
         self.num_vars = num_vars
