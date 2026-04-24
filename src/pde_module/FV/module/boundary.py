@@ -12,7 +12,7 @@ from warp.types import vector
 class Boundary(FiniteVolume):
     def __init__(self,mesh:FiniteVolumeMesh,num_vars,float_dtype=wp.float32):
         assert isinstance(mesh,FiniteVolumeMesh)
-        super().__init__(float_dtype)
+        super().__init__(mesh,float_dtype)
         self.num_vars = num_vars
         self.num_faces = len(mesh.exterior_faces)
         self.mesh = mesh

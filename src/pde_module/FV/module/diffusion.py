@@ -7,7 +7,7 @@ from pde_module.stencil.hooks import *
 
 class Diffusion(FiniteVolume):
     def __init__(self,mesh:FiniteVolumeMesh,interpolation = 'central',float_dtype = wp.float32):
-        super().__init__(float_dtype)
+        super().__init__(mesh,float_dtype)
         self.mesh = mesh
         self.interpolation_key = interpolation
     
