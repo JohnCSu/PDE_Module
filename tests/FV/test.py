@@ -1,7 +1,9 @@
 from pde_module.FV import (Diffusion,
                            Advection,
                            FiniteVolumeMesh,
+                           Grad,
                            Boundary,
+                           Divergence,
                            flags)
 from pde_module.mesh.mesh_generators import create_Uniform_grid
 from pde_module.mesh import to_pyvista
@@ -13,7 +15,6 @@ wp.init()
 wp.set_module_options({"enable_backward": False})
 def test():
     
-
     N = 7
     nodes_per_axis = (N,5,4)
     dx = 1/(N-1)
@@ -37,13 +38,17 @@ def test():
     
     adv = Advection(FV_mesh)
     diff = Diffusion(FV_mesh)
-    vel_BC = Boundary(3,FV_mesh)
+    grad = Grad(FV_mesh)
+    div = Divergence(FV_mesh)
+    
+    
+    vel_BC = Boundary(FV_mesh,3)
     vel_BC.set_BC('ALL',flags.DIRICHLET,0)
     vel_BC.set_BC('-Z',flags.VON_NEUMANN,0)
     vel_BC.set_BC('+Z',flags.VON_NEUMANN,0)
     
     
-    BC = Boundary(1,FV_mesh)
+    BC = Boundary(FV_mesh,1)
     BC.set_BC('ALL',flags.DIRICHLET,0)
     BC.set_BC('-Z',flags.VON_NEUMANN,0)
     BC.set_BC('+Z',flags.VON_NEUMANN,0)
@@ -54,11 +59,19 @@ def test():
     t=0
 
     scalar_BC = BC(scalar)
+    scalar_grad = grad(scalar,scalar_BC,alpha = 1.)
     laplace = diff(scalar,scalar_BC,alpha)
-    u_BC = BC(scalar)
     
     vel_boundary = vel_BC(velocity)
     conv = adv(scalar,scalar_BC,velocity,vel_boundary,density = 1.)
+    u_div = div(velocity,vel_boundary) # Scalar
+    
+    # Test outputs match
+    
+    assert u_div.shape == laplace.shape
+    assert conv.shape == scalar_grad.shape
+    u_div + laplace
+    conv+ scalar_grad
     
     return True
 
