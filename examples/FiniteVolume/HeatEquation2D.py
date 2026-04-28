@@ -49,7 +49,7 @@ t=0
 
 print(len(FV_mesh.exterior_faces))
 
-with wp.ScopedTimer('Laplace',cuda_filter=wp.TIMING_KERNEL):
+with wp.ScopedTimer('Laplace'):
     for i in range(1000):
         u_BC = BC(u)
         laplace = diff(u,u_BC,alpha)
