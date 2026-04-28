@@ -1,8 +1,8 @@
 import warp as wp
 from warp.types import vector
-
-
-def create_diffusion_kernel(num_vars, float_dtype):
+from .interpolation_functions import central_difference,linear_interpolation
+from ..flags import CENTRAL_DIFFERENCE
+def create_diffusion_kernel(num_vars,gradient_calculation, float_dtype):
     vec_type = vector(num_vars, dtype=float_dtype)
     vector_type = vector(3, dtype=float_dtype)
 
@@ -29,13 +29,9 @@ def create_diffusion_kernel(num_vars, float_dtype):
             neighbor_id = neighbor_info[0]
             face_id = neighbor_info[-1]
             area = wp.length(face_normals[face_id])
-            dist = wp.length(cell_centroids[neighbor_id] - cell_centroids[cell_id])
             for j in range(num_vars):
-                val = (
-                    (cell_values[j, neighbor_id] - cell_values[j, cell_id])
-                    * area
-                    / dist
-                )
+                if wp.static(gradient_calculation == CENTRAL_DIFFERENCE):
+                   val = area*central_difference(cell_values[j, cell_id],cell_values[j, neighbor_id],wp.uint8(0),cell_centroids[cell_id],cell_centroids[neighbor_id],wp.uint8(0))
                 dif[j] += val
         dif *= viscosity / volume
         for j in range(num_vars):
