@@ -32,7 +32,7 @@ def test():
             key = sign+axis
             FV_mesh.exterior_faces.groups[key] = np.argwhere(np.isclose(coords,x)).ravel()
             
-    print(FV_mesh.exterior_faces.groups)
+    # print(FV_mesh.exterior_faces.groups)
     scalar = FV_mesh.create_cell_field(1,IC = 1.5)
     velocity = FV_mesh.create_cell_field(3,IC = 1.5)
     
@@ -81,15 +81,15 @@ def test():
     
     u_div = div(velocity,vel_boundary) # Scalar
     
-    print(scalar_grad.numpy().squeeze()[:,0])
-    print(u_div.numpy().squeeze()[0])
-    print(vel_conv.numpy().squeeze()[:,0])
+    # print(scalar_grad.numpy().squeeze()[:,0])
+    # print(u_div.numpy().squeeze()[0])
+    # print(vel_conv.numpy().squeeze()[:,0])
     
-    # Test outputs match
-    assert scalar_conv.shape == u_div.shape == laplace.shape
-    assert  scalar_grad.shape == vel_conv.shape == vel_lapl.shape
-    u_div + laplace # Scalar Trans
-    vel_conv+ scalar_grad + vel_lapl # Mimic NS
+    assert all( np.isclose(x,4.5) for x in vel_conv.numpy().squeeze()[:,0])
+    assert np.isclose(u_div.numpy().squeeze()[0] , 3.)
+    assert np.allclose(scalar_grad.numpy().squeeze()[:,0],[1.5,1.5,0.])
+    
+    
     
     return True
 
