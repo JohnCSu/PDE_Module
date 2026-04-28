@@ -1,4 +1,6 @@
 import numpy as np
+import warp as wp
+from warp.types import is_array,type_is_vector,type_is_matrix
 from typing import Optional
 from pde_module.mesh.cell import Cells
 from pde_module.mesh.face import Faces
@@ -67,6 +69,58 @@ class Mesh:
         self.int_dtype = int_dtype
         self.float_dtype = float_dtype
 
+    
+    def verify_fp(self,*,print_output=False,raise_error = False,**kwargs):
+        self._verify_fp(self,self.float_dtype,print_output=print_output,raise_error=raise_error,**kwargs)
+        
+        
+    @staticmethod
+    def _verify_fp(obj,target_fp,*,print_output=False,raise_error = False,ignore_int = False):
+        is_valid = True
+        
+        if print_output:
+            print(f'Targe Float dtype: {target_fp}')
+        for name,attr in obj.__dict__.items():
+            match attr:
+                case np.ndarray():
+                    dtype = attr.dtype
+                    arr_type = 'numpy'                        
+                case wp.array():
+                    if type_is_vector(attr.dtype) or type_is_matrix(attr.dtype):
+                        dtype = attr.dtype._wp_scalar_type_
+                    else:
+                        dtype = attr.dtype
+                        
+                    dtype = wp.dtype_to_numpy(dtype)
+                    arr_type = 'warp'
+                case _:
+                    if hasattr(attr,'__dict__'):
+                        if any(isinstance(x,(np.ndarray,wp.array)) for x in attr.__dict__.values()):
+                            Mesh._verify_fp(attr,target_fp,print_output=print_output,raise_error=raise_error,ignore_int=ignore_int)
+                    
+                    continue
+            
+            if np.issubdtype(dtype,np.integer) and ignore_int:
+                continue
+            
+            check =  (dtype == target_fp)
+            if not check:
+                is_valid = False
+                
+            if print_output:
+                print(f'{name}: {arr_type} array, array dtype: {dtype}: {'Passed' if check else 'Fail'}')
+            
+            if raise_error:
+                raise ValueError(f'precision check failed for {name}, was a {arr_type} expected {target_fp} but got {dtype} instead')
+        
+        if print_output:
+            print(f'Verification for floating point {'Passed' if is_valid else 'Failed'}')
+            
+        return is_valid
+                
+                
+            
+        
     # def add_group(
     #     self,
     #     name: str,
