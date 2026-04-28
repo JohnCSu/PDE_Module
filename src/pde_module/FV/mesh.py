@@ -4,7 +4,7 @@ from pde_module.mesh.face import Faces
 import numpy as np
 import warp as wp
 from warp.types import vector
-from typing import Any
+from typing import Any,Optional,Callable
 
 @dataclass
 class Interior_Faces:
@@ -103,14 +103,17 @@ class FiniteVolumeMesh(EulerianMesh):
             
     
     
-    def create_cell_field(self,num_vars,IC = None,output_array = 'warp',device = None,**kwargs):
+    def create_cell_field(self,num_vars:int,IC:Optional[float | Callable[[np.ndarray,Any],np.ndarray]] = None,output_array:str = 'warp',device = None,**kwargs):
         shape = (num_vars,len(self.cells))
         arr = np.zeros(shape,dtype =self.float_dtype)
         
-        if IC is not None:
+        if callable(IC):
             arr:np.ndarray = IC(self.cells.centroids,**kwargs)
             assert arr.shape == shape and isinstance(arr,np.ndarray)
-        
+        elif isinstance(IC,(float,int)):
+            arr.fill(IC)
+        else:
+            assert IC is None, 'IC must be either callable, float, int or Nonetype'
         
         match output_array:
             case 'numpy':
