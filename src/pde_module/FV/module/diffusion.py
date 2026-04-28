@@ -6,15 +6,21 @@ from pde_module.stencil.hooks import *
 from pde_module.FV.kernel import create_diffusion_kernel
 from pde_module.FV.functional import diffusion
 
-
+from ..flags import CENTRAL_DIFFERENCE
 class Diffusion(FiniteVolume):
     def __init__(
         self, mesh: FiniteVolumeMesh, interpolation="central", float_dtype=wp.float32
     ):
         super().__init__(mesh, float_dtype)
         self.mesh = mesh
-        self.interpolation_key = interpolation
-
+        self.interpolation = interpolation
+        
+        match self.interpolation:
+            case 'central':
+                self.interpolation_method = CENTRAL_DIFFERENCE
+            case _:
+                raise ValueError('interpolation methods are central')
+            
     def __call__(self, input_field, boundary_values, viscosity):
         return super().__call__(input_field, boundary_values, viscosity)
 
@@ -24,7 +30,7 @@ class Diffusion(FiniteVolume):
         self.field_shape = input_field.shape
         self.num_vars = self.field_shape[0]
         self.internal_kernel, self.external_kernel = create_diffusion_kernel(
-            self.num_vars, self.float_dtype
+            self.num_vars,self.interpolation_method, self.float_dtype
         )
 
         self.output_field = wp.empty_like(input_field)
