@@ -6,8 +6,6 @@ from warp.types import vector, matrix, type_is_float
 from ..stencil.hooks import *
 from ..utils.types import wp_Array, wp_Kernel, wp_Vector,wp_Matrix
 
-
-wp.float32
 class ForwardEuler(Stencil):
     """Forward Euler time integration.
 
@@ -16,9 +14,11 @@ class ForwardEuler(Stencil):
 
     def __init__(self,*args,**kwargs) -> None:
         """Initialize Forward Euler integrator.
-
+        
         Args:
-            input_dtype: Warp vector or matrix dtype for the field.
+            swap_buffers (bool) : If True, after time stepping, set the input array as the output field so the output field can be
+                used as the input array in the next time step
+        
         """
         # self.input_dtype = input_dtype
         # if type_is_float(input_dtype):
@@ -33,7 +33,7 @@ class ForwardEuler(Stencil):
     ) -> None:
         """Initialize the forward Euler kernel."""
         
-        self.output_array = super().create_output_array(input_array)
+        self.output_array = wp.empty_like(input_array)
         self.kernel = create_forward_euler(input_array.dtype)
         self.size = input_array.size
         assert input_array.shape == stencil_values.shape == self.output_array.shape
