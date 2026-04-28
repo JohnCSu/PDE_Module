@@ -11,6 +11,10 @@ class Advection(FiniteVolume):
         self.interpolation = interpolation
         
     
+    def __call__(self,scalar_cell_field,scalar_boundary_values,velocity_cell_field,velocity_boundary_values,density = 1.):
+        return super().__call__(scalar_cell_field,scalar_boundary_values,velocity_cell_field,velocity_boundary_values,density)
+    
+    
     @setup
     def initialise(self,scalar_cell_field,scalar_boundary_values,velocity_cell_field,velocity_boundary_values,density):
         self.mesh.to_warp()
@@ -101,7 +105,7 @@ def create_advection_kernel(num_scalars,float_dtype):
             mass_flow = density*wp.dot(face_normal,u_vec)
             
             for scalar in range(num_scalars):
-                advec[scalar] = advec[scalar] + upwind(cell_field[scalar,cell_id],cell_field[scalar,neighbor_id],mass_flow)   
+                advec[scalar] = advec[scalar] + upwind(cell_field[scalar,cell_id],cell_field[scalar,neighbor_id],mass_flow)*mass_flow   
             
         advec /= cell_volume
         for scalar in range(num_scalars):
