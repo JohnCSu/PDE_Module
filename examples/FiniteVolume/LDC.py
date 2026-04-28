@@ -88,40 +88,9 @@ with wp.ScopedCapture() as capture:
 for i in range(10001):
     wp.capture_launch(capture.graph)
     t+= dt
-    if i % 10 == 0:
+    if i % 1000 == 0:
         print(f't = {t:.3E},iter = {i},u_max {u.numpy()[0].max()}')
-        
 
-
-# for i in range(10001):
-#     u_BC = u_boundary(u)
-#     diff = u_laplace(u,u_BC,viscosity)
-#     conv = u_convection(u,u_BC,u,u_BC,density=density)
-#     div = u_divergence(u,u_BC,alpha = -beta)
-    
-#     p_BC = p_boundary(p)
-#     del_p = p_grad(p,p_BC,alpha = -1/density)
-    
-#     u_F = del_p + diff
-    
-#     u_next = u_time_step(u,u_F,dt)
-#     p_next = p_time_step(p,div,dt)
-    
-#     #Swap Buffers
-#     # u_time_step.output_array = u
-#     # p_time_step.output_array = p
-    
-#     # u,p = u_next,p_next
-    
-#     wp.copy(u,u_next)
-#     wp.copy(p,p_next)
-    
-#     t += dt
-    # if i % 100 == 0:
-    #     print(f't = {t:.3E},iter = {i},u_max {u.numpy()[0].max()}, {u_BC.numpy()[0].max()}')
-        
-
-# exit()
 pv_mesh = to_pyvista(FV_mesh)
 
 us = u.numpy()
