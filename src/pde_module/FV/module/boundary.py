@@ -41,7 +41,8 @@ class Boundary(FiniteVolume):
         self.boundary_types[output_ids,ids] = boundary_type
         self.boundary_values[output_ids,ids] = boundary_value                
     
-    
+    def __call__(self, cell_field):
+        return super().__call__(cell_field)
     
     @setup
     def setup(self,cell_field):

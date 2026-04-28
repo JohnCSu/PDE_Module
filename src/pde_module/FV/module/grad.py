@@ -14,8 +14,11 @@ class Grad(FiniteVolume):
         super().__init__(mesh, float_dtype)
         
     
+    def __call__(self, cell_field,boundary_values,alpha = 1.):
+        return super().__call__(cell_field,boundary_values,alpha)
+    
     @setup
-    def initialise(self,cell_field,boundary_values,alpha = 1.):
+    def initialise(self,cell_field,boundary_values,alpha):
         self.mesh.to_warp()
         
         assert cell_field.shape[0] == 1 , 'Only scalar fields availiable for now'
@@ -26,7 +29,7 @@ class Grad(FiniteVolume):
         self.internal_kernel,self.external_kernel = create_grad_kernel(self.float_dtype)
         self.output_field = wp.empty((3,self.num_cells),dtype=cell_field.dtype)
         
-    def forward(self,cell_field,boundary_values,alpha = 1.):
+    def forward(self,cell_field,boundary_values,alpha):
         
         wp.launch(self.internal_kernel,dim = self.num_cells,
                   inputs=[
@@ -90,7 +93,8 @@ def create_grad_kernel(float_dtype):
         grad /= alpha*cell_volume
         for j in range(3):
             grad_field[j,cell_id] = grad[j] 
-    
+        # if cell_id == 4:
+        #     wp.printf('%.2F %.2F %.2F \n',grad_field[0,cell_id],grad_field[1,cell_id],grad_field[2,cell_id])
     
     @wp.kernel
     def grad_external_kernel(
@@ -108,10 +112,14 @@ def create_grad_kernel(float_dtype):
         cell_volume = cell_volumes[cell_id]
         
         grad = boundary_value[0,tid]*face_normal*alpha/cell_volume
-        
+        # if cell_id == 4:
+        #     wp.printf('%.2F\n',boundary_value[0,tid])
+        #     wp.printf('%.2F %.2F %.2F \n',grad[0],grad[1],grad[2])
         for j in range(3):
-            grad_field[j,cell_id] = grad[j] 
+            grad_field[j,cell_id] += grad[j] 
         
+        # if cell_id == 4:
+        #     wp.printf('%.2F %.2F %.2F \n',grad_field[0,cell_id],grad_field[1,cell_id],grad_field[2,cell_id])
     return grad_internal_kernel,grad_external_kernel
         
        

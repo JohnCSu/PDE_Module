@@ -11,8 +11,12 @@ class Diffusion(FiniteVolume):
         self.mesh = mesh
         self.interpolation_key = interpolation
     
+    
+    def __call__(self,input_field,boundary_values,viscosity):
+        return super().__call__(input_field,boundary_values,viscosity)
+    
     @setup
-    def setup(self,input_field,boundary_values,viscosity):
+    def initialise(self,input_field,boundary_values,viscosity):
         self.mesh.to_warp()
         self.field_shape = input_field.shape
         self.num_vars = self.field_shape[0]

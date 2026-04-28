@@ -11,8 +11,13 @@ class Divergence(FiniteVolume):
     '''
     def __init__(self, mesh, float_dtype=wp.float32):
         super().__init__(mesh, float_dtype)
+        
+    
+    def __call__(self, vector_field,boundary_values,alpha= 1.):
+        return super().__call__(vector_field,boundary_values,alpha)
+    
     @setup
-    def initialise(self,vector_field,boundary_values,alpha =1.):
+    def initialise(self,vector_field,boundary_values,alpha):
         self.field_shape = vector_field.shape
         assert self.field_shape[0] == 3 , 'Only vector fields of size 3 availiable for now'
         assert self.field_shape[0] == boundary_values.shape[0]
@@ -22,7 +27,7 @@ class Divergence(FiniteVolume):
         self.internal_kernel,self.external_kernel = create_Divergence_kernel(self.float_dtype)
 
         self.output_field = wp.empty((1,self.num_cells),dtype=self.float_dtype)
-    def forward(self,vector_field,boundary_values,alpha =1.):
+    def forward(self,vector_field,boundary_values,alpha):
         wp.launch(self.internal_kernel,dim = self.num_cells,
                   inputs=[
                         vector_field,
@@ -114,8 +119,8 @@ def create_Divergence_kernel(float_dtype):
         div = float_dtype(0.)
         for axis in range(dimension):
             div += boundary_value[axis,tid]*face_normal[axis]
-            
-        scalar_field[0,cell_id] = div*alpha/cell_volume 
+        # wp.printf('%.2f\n',div)
+        scalar_field[0,cell_id] += div*alpha/cell_volume 
 
 
     return internal_divergence_kernel,external_divergence_kernel
